@@ -402,7 +402,7 @@ def clean_and_tag_signals(conn: sqlite3.Connection) -> Dict[str, int]:
         r"纯福利分享",
     ]
     tag_rules = [
-        ("付费意愿已验证", r"扣费|会员|月销|想要|投流|单价|付费|变现|暴利|出单"),
+        ("付费意愿已验证", r"扣费|会员|月销|想要|投流|单价|付费|变现|高毛利|出单"),
         ("现有方案体验差/求平替", r"差评|垃圾|不好用|闪退|套路|太贵|平替|不能分享|模糊"),
         ("国内环境/使用门槛卡点", r"Claude|中转|封号|部署|不会配|环境|翻墙|吓哭"),
         ("Token/算力成本高", r"Token|算力|成本|烧不起|免费额度"),
@@ -540,7 +540,7 @@ def main() -> None:
             mvp_days=args.mvp_days,
             has_paid_proof=not args.unpaid,
         )
-        print(f"[SUBMIT-IDEA] 已完成五维 AI 锐评并入库: {out}")
+        print(f"[SUBMIT-IDEA] 已完成立项评估并入库: {out}")
         from export_dashboard import export_all
         export_all(conn, BASE_WORKSPACE)
         print(f"[EXPORT] 看板已自动刷新: {HTML_PATH}")
