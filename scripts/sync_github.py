@@ -68,6 +68,7 @@ def delete_remote_db():
 
 
 def sync():
+    subprocess.run(["gh", "auth", "switch", "-u", "donghyq"], capture_output=True)
     delete_remote_db()
     for rel in STATIC_FILES:
         put_file(rel)
