@@ -2,12 +2,13 @@
 
 在线终端（GitHub Pages）：`https://donghyq.github.io/market-radar/`  
 本地入口：克隆仓库后直接打开根目录 `index.html`（单文件自包含，内置全量证据快照，无需外部网络请求或登录）。
+Roadmap 追踪（GitHub Issue #1）：`https://github.com/donghyq/market-radar/issues/1`
 
 ---
 
 ## 一、系统架构与工程设计
 
-本工具专为小型精悍团队设计，用于从中国互联网公开及半公开交易渠道持续采集真实用户痛点，经去噪与五维量化评估后，生成具备商业核算（成本、利润、周期、人数、合规）的立项决策矩阵。
+本工具专为团队设计，用于从中国互联网公开及半公开交易渠道持续采集真实用户痛点，经去噪与立项评估后，生成具备商业核算（成本、利润、周期、人数、合规）的立项决策矩阵。
 
 ### 1.1 整体架构图
 
@@ -41,7 +42,7 @@
                                          v
 +-----------------------------------------------------------------------------------+
 |                       3. 立项评估与主从式投研终端渲染层                           |
-|  - 五维量化评分：付费证据(40) + 获客路径(25) + 交付周期(15) + 竞争缝隙(10) + 测款(10) |
+|  - 评分权重：付费证据(40) + 获客路径(25) + 交付周期(15) + 竞争缝隙(10) + 测款(10) |
 |  - 复利与成长核算：评估项目是否具备滚雪球壁垒（组件库/行业规则库）与团队技能沉淀  |
 |  - 市场部六维账本：成本预估 / 利润与来源 / 工期 / 人数 / 三阶段路径 / 合规风险    |
 |  - 静态单文件构建 (scripts/export_dashboard.py)：                                 |
@@ -132,7 +133,7 @@ python3 scripts/auto_browser_collector.py --collect \
 ```
 
 ### 4.4 团队成员录入自己人脉发现的新方向（自动评分并生成独立 JSON）
-除了直接在网页端 `03 录入人脉新方向` 填表外，也可在终端执行：
+除了直接在网页端 `录入新方向` 填表外，也可在终端执行：
 ```bash
 python3 scripts/radar_cli.py submit-idea \
   --title "新项目方向名称" \
@@ -175,5 +176,5 @@ python3 scripts/sync_github.py
 3. 运行 `python3 scripts/radar_cli.py clean && python3 scripts/export_dashboard.py` 即可在终端中看到新增信号。
 
 ### 5.2 如何修改或新增立项深度评估档案？
-- **新增独立项目**：直接在 `data/ideas/` 目录下新建一个 `.json` 文件（参考 `data/ideas/AUTO-DISC-01.json` 结构，包含 `workflow_steps`、`compounding` 复利成长评估、`biz_eval` 六维商业核算表与 `evidence_ids` 关联证据编号数组），然后运行 `python3 scripts/export_dashboard.py`。
+- **新增独立项目**：直接在 `data/ideas/` 目录下新建一个 `.json` 文件（参考 `data/ideas/AUTO-DISC-01.json` 结构，包含 `workflow_steps`、`compounding` 复利成长评估、`biz_eval` 成本与收益核算表与 `evidence_ids` 关联证据编号数组），然后运行 `python3 scripts/export_dashboard.py`。
 - **调整前端界面**：修改 `scripts/template.html`（样式与布局）或 `scripts/dashboard_app.js`（渲染逻辑），运行 `python3 scripts/export_dashboard.py` 重新编译单文件 `index.html`。
