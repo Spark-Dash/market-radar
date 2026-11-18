@@ -146,7 +146,11 @@ python3 scripts/radar_cli.py submit-idea \
 ```
 
 ### 4.5 同步最新数据与看板至 GitHub 仓库及线上 Pages
+
+先用当前主分支的渲染代码导出页面，再使用有写入权限的 GitHub 账号同步。同步脚本只提交数据和生成后的页面；如本地渲染代码落后、页面未重新生成或远端已有新提交，同步会停止。代码改动通过 Git 提交发布。
+
 ```bash
+python3 scripts/sync_github.py --check
 python3 scripts/sync_github.py
 ```
 

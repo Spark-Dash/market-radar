@@ -20,6 +20,17 @@ const RESEARCH_QUESTIONS = {
   'PROJ-04': '对扣费和操作不满的用户，是否愿意为离线买断版付费？',
   'PROJ-05': '直播创作者是否愿意为互动效果和低运行成本付费？',
 };
+const BRIEFS = {
+  'AUTO-01': '帮图文带货创作者用一张商品图批量生成素材，并提示需要人工复核的文案。',
+  'PROJ-01': '把讲义、课程笔记或科普文稿转换成带配音的知识动画，省掉手写分镜和配置环境的时间。',
+  'TEAM-FE4500': '让跨境卖家按寄样状态跟进达人，及时发现未交片或未挂商品链接的订单。',
+  'AUTO-02': '在本地检查标书的易漏项，帮助投标团队在提交前复核格式和约束。',
+  'PROJ-02': '把判决书或政策材料做成短视频样片，帮助律所和财税创作者降低图解制作成本。',
+  'PROJ-03': '用同一套规划能力生成备考打卡表，或生成教培机构发给家长的成长报告。',
+  'AUTO-03': '让门窗和定制柜商家在手机上选择规格，向顾客发出可追踪的报价单。',
+  'PROJ-04': '把语音跟随提词和停顿粗剪放进同一款离线工具，用买断价格验证需求。',
+  'PROJ-05': '让直播创作者用本地规则处理常见弹幕，减少模型调用并保留互动效果。',
+};
 const FACTORS = [
   ['付费意愿', '付费意愿'], ['获客截流', '获客渠道'], ['研发交付', '研发交付'],
   ['竞争缝隙', '竞争空间'], ['48h测款', '快速验证'],
@@ -30,7 +41,7 @@ const STAGES = [
 ];
 const VALIDATION_KEY = 'mr_validation_v1';
 
-let selectedCode = '';
+let selectedCode = new URLSearchParams(location.hash.slice(1)).get('project') || '';
 let workMode = 'focus';
 let savedReports = readReports();
 
@@ -79,9 +90,9 @@ function renderProjects() {
   document.getElementById('tab-projects').innerHTML = `
     <div class="research-heading">
       <div>
-        <span class="section-kicker">RESEARCH DESK</span>
-        <h2>市场机会工作台</h2>
-        <p>比较候选方向，追溯关键证据，记录验证结果。</p>
+        <div class="research-kicker"><span aria-hidden="true"></span> 商机研究 / 本期观察</div>
+        <h2>市场机会工作台<span>.</span></h2>
+        <p>从市场信号出发，找到下一个值得验证的方向。</p>
       </div>
       <div class="mode-select" aria-label="查看方式">
         <button type="button" class="btn" id="focusMode" aria-pressed="${workMode === 'focus'}" onclick="setWorkMode('focus')">项目研究</button>
@@ -97,9 +108,9 @@ function renderProjects() {
     ${list.length ? workMode === 'matrix' ? renderMatrix(list) : `
     <div class="research-desk">
       <aside class="desk-panel watch-panel">
-        <div class="panel-head"><h3>候选列表</h3><span class="panel-count">${list.length}</span></div>
-        <p class="watch-sort">按评估分排序</p>
-        <div id="watchList"></div>
+        <div class="panel-head"><h3>候选方向</h3><span class="panel-count">${list.length} 个</span></div>
+        <div class="watch-sort"><span>方向 / 验证状态</span><span>评分 ↓</span></div>
+        <div id="watchList" onkeydown="navigateCandidates(event)"></div>
       </aside>
       <div id="researchSelection" class="research-selection"></div>
     </div>` : '<div class="inspector">当前批次暂无候选方向。</div>'}
@@ -125,30 +136,65 @@ function updateSelection(list) {
   const index = list.findIndex(p => p.code === selectedCode);
   const p = list[index];
   if (!p) return;
-  document.getElementById('researchSelection').innerHTML = `
+  const selection = document.getElementById('researchSelection');
+  selection.innerHTML = `
     <div class="research-main">
       <section class="desk-panel project-brief" aria-labelledby="activeProject">
-        <div class="brief-eyebrow"><span class="asset-code">${esc(p.code)}</span><span>${esc(sourceLabel(p))}</span></div>
-        <h3 id="activeProject">${esc(shortTitle(p))}</h3>
-        <p class="brief-lead">${esc(p.plain_what_to_do) || '暂无产品定位。'}</p>
-        ${p.who_pays_and_price ? `<div class="brief-buyer"><span>客群与定价假设</span><p>${esc(p.who_pays_and_price)}</p></div>` : ''}
+        <div class="brief-grid">
+          <div>
+            <div class="brief-eyebrow"><span class="asset-code">${esc(p.code)}</span><span>${esc(sourceLabel(p))}</span></div>
+            <h3 id="activeProject">${esc(shortTitle(p))}</h3>
+            <p class="brief-lead">${esc(BRIEFS[p.code] || p.plain_what_to_do) || '暂无产品定位。'}</p>
+          </div>
+          ${scoreDial(p)}
+        </div>
+        ${RESEARCH_QUESTIONS[p.code] ? `<div class="brief-question"><span>待验证</span><p>${esc(RESEARCH_QUESTIONS[p.code])}</p></div>` : ''}
       </section>
-      ${renderLinkedEvidence(p)}
+      <div class="research-panels">
+        ${renderLinkedEvidence(p)}
+        ${renderFactors(p)}
+      </div>
       <details class="desk-panel archive-detail">
         <summary>展开完整评估档案</summary>
         ${renderDetailCard(p, index)}
       </details>
     </div>
     <aside class="research-context">
-      ${renderFactors(p)}
       ${renderValidation(p)}
+      ${p.who_pays_and_price ? `<section class="desk-panel"><div class="panel-head"><h3>客群与定价</h3><span class="panel-count">研究假设</span></div><div class="context-note">${esc(p.who_pays_and_price)}</div></section>` : ''}
     </aside>`;
+}
+
+function scoreDial(p) {
+  const value = Number.isFinite(p.score) ? Math.max(0, Math.min(100, p.score)) : 0;
+  return `<div class="score-dial" aria-label="评估分 ${scoreText(p)}，满分 100">
+    <svg viewBox="0 0 120 120" aria-hidden="true">
+      <circle class="dial-guide" cx="60" cy="60" r="56"/>
+      <circle class="dial-track" cx="60" cy="60" r="48"/>
+      <circle class="dial-fill" cx="60" cy="60" r="48" pathLength="100" stroke-dasharray="${value} 100" transform="rotate(-90 60 60)"/>
+    </svg>
+    <div class="dial-caption" aria-hidden="true"><strong>${scoreText(p)}</strong><span>评估分 / 100</span></div>
+  </div>`;
+}
+
+function navigateCandidates(event) {
+  const directions = {ArrowUp:-1, ArrowDown:1, ArrowLeft:-1, ArrowRight:1};
+  const step = directions[event.key];
+  const item = event.target.closest('.watch-item');
+  if (!item || !step) return;
+  const next = Number(item.dataset.rank) + step;
+  if (next < 0 || next >= event.currentTarget.children.length) return;
+  event.preventDefault();
+  selectProject(next);
+  document.querySelector('.watch-item[aria-pressed=true]')?.scrollIntoView({block:'nearest',inline:'nearest'});
 }
 
 function selectProject(index) {
   const list = getAllProjects();
   if (!list[index]) return;
+  if (list[index].code === selectedCode && workMode === 'focus') return;
   selectedCode = list[index].code;
+  history.replaceState(null, '', '#project=' + encodeURIComponent(selectedCode));
   if (workMode !== 'focus') {
     workMode = 'focus';
     renderProjects();
@@ -174,7 +220,6 @@ function renderFactors(p) {
     <section class="desk-panel" aria-label="立项评分">
       <div class="panel-head"><h3>五维评分</h3><span class="panel-count">${rules}</span></div>
       <div class="factor-body">
-        <div class="factor-total"><strong>${scoreText(p)}</strong><span> / 100</span></div>
         ${factorValues(p).map(({label, score, max}) => `
           <div class="factor-row">
             <div><span>${label}</span><span>${max ? score + '/' + max : '未记录'}</span></div>
@@ -244,7 +289,6 @@ function renderValidation(p) {
     <section class="desk-panel validation-panel">
       <div class="panel-head"><h3>48 小时验证</h3><span class="panel-count" id="validationStage">${stageName(report.stage)}</span></div>
       <div class="validation-body">
-        ${RESEARCH_QUESTIONS[p.code] ? `<div class="validation-question"><span class="section-kicker">待验证问题</span><p>${esc(RESEARCH_QUESTIONS[p.code])}</p></div>` : ''}
         <span class="section-kicker">建议动作</span>
         <p>${esc(p.plan_48h) || '暂无验证建议。'}</p>
         <details id="validationRecord">
