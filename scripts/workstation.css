@@ -277,3 +277,46 @@ body { background: radial-gradient(ellipse at 52% -25%, #1c304a 0%, var(--bg) 46
   .dial-caption span { font-size: 8px; }
   #watchList { grid-auto-columns: minmax(134px, 44%); }
 }
+
+/* AI Sharp Review Callout & Unfolded Archive */
+.project-brief h3 {
+  font-size: clamp(20px, 2.15vw, 27px);
+  line-height: 1.28;
+  letter-spacing: -0.02em;
+  margin: 10px 0 8px;
+  color: #f4f9ff;
+}
+.sharp-callout {
+  margin-top: 14px;
+  padding: 12px 15px;
+  background: linear-gradient(95deg, rgba(235, 179, 82, 0.13), rgba(20, 48, 56, 0.45));
+  border: 1px solid rgba(235, 179, 82, 0.38);
+  border-left: 3px solid var(--gold);
+  border-radius: 8px;
+}
+.sharp-badge {
+  font-size: 11.5px;
+  font-weight: 650;
+  color: var(--gold);
+  letter-spacing: 0.04em;
+  margin-bottom: 5px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.sharp-callout p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.65;
+  color: #f1f5f9;
+}
+.archive-open .inspector {
+  background: transparent;
+  border: 0;
+  padding: 16px 18px 20px;
+  margin: 0;
+}
+.archive-open .ins-head,
+.archive-open .summary-lead {
+  display: none;
+}

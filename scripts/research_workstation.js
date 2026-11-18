@@ -1,14 +1,28 @@
 const SHORT_TITLES = {
-  'AUTO-01': '带货图文批量制作',
-  'PROJ-01': '知识动画生成',
-  'TEAM-FE4500': '跨境达人寄样跟进',
-  'AUTO-02': '标书废标项检查',
-  'PROJ-02': '律所获客短视频',
-  'PROJ-03': '备考规划与教培成长报告',
-  'AUTO-03': '门窗与定制柜快速报价',
-  'PROJ-04': '离线提词与视频粗剪',
-  'PROJ-05': '直播弹幕互动工具',
+  'AUTO-01': '2张图爆单裂变 · 违禁词防封台',
+  'PROJ-01': '免Claude · 开智小曲动画工坊',
+  'TEAM-FE4500': 'TK达人寄样防白嫖 · 自动催片',
+  'AUTO-02': '离线防泄密 · 标书废标红线审查',
+  'PROJ-02': '判决书转60秒律所案源图解视频',
+  'PROJ-03': '考研精确到页打卡 · 教培续费战报',
+  'AUTO-03': '门窗定制30秒防飞单报价器',
+  'PROJ-04': '反续费套路 · 离线语音提词粗剪',
+  'PROJ-05': '一晚3毛钱 · 大肥鱼弹幕整活包',
 };
+const HERO_TITLES = {
+  'AUTO-01': '抖音/小红书「2张图带货爆款裂变 + 违禁词防封清洗」批量工作台',
+  'PROJ-01': '国内免 Claude「开智小曲 / Remotion 知识动画」一键生成工坊',
+  'TEAM-FE4500': 'TikTok 跨境卖家「达人寄样防白嫖自动催片 + 挂车监控」桌面助手',
+  'AUTO-02': '工程与政企投标「离线防泄密 · 标书废标红线与串标雷区审查器」',
+  'PROJ-02': '律所/财税高客单 IP「枯燥判决书 → 60秒动态图解获客视频」生成器',
+  'PROJ-03': '一鱼两吃：闲鱼考研精确到页打卡表 + 教培机构「家长群续费战报」',
+  'AUTO-03': '门窗与全屋定制老板「手机点选30秒出图 · 防同行比价飞单报价器」',
+  'PROJ-04': '反自动续费套路 · 29.9元买断「离线语音同步悬浮提词 + 气口粗剪器」',
+  'PROJ-05': '一晚仅耗3毛钱 · DeepSeek-V4.1-Flash「大肥鱼弹幕整活直播整合包」',
+};
+function heroTitle(p) {
+  return HERO_TITLES[p.code] || cleanText(p.title).replace(/^(?:【[^】]+】|项目\s*\d+[：:])\s*/, "");
+}
 const RESEARCH_QUESTIONS = {
   'AUTO-01': '带货创作者是否愿意为批量出图付费？',
   'PROJ-01': '收藏教程、遇到配置困难的人，是否愿意为成片付费？',
@@ -142,22 +156,29 @@ function updateSelection(list) {
       <section class="desk-panel project-brief" aria-labelledby="activeProject">
         <div class="brief-grid">
           <div>
-            <div class="brief-eyebrow"><span class="asset-code">${esc(p.code)}</span><span>${esc(sourceLabel(p))}</span></div>
-            <h3 id="activeProject">${esc(shortTitle(p))}</h3>
-            <p class="brief-lead">${esc(BRIEFS[p.code] || p.plain_what_to_do) || '暂无产品定位。'}</p>
+            <div class="brief-eyebrow"><span class="asset-code">${esc(p.code)}</span><span>${esc(sourceLabel(p))}</span><span class="asset-code" style="color:var(--gold);border-color:#5c4d26;background:#262013;">${esc((p.compounding && p.compounding.tier) || "重点方向")}</span></div>
+            <h3 id="activeProject">${esc(heroTitle(p))}</h3>
+            <p class="brief-lead">${esc(p.plain_what_to_do || BRIEFS[p.code])}</p>
           </div>
           ${scoreDial(p)}
         </div>
-        ${RESEARCH_QUESTIONS[p.code] ? `<div class="brief-question"><span>待验证</span><p>${esc(RESEARCH_QUESTIONS[p.code])}</p></div>` : ''}
+        ${p.ai_sharp_review ? `
+        <div class="sharp-callout">
+          <div class="sharp-badge">AI 锐评 · 商业切入点与真实数据诊断</div>
+          <p>${esc(p.ai_sharp_review)}</p>
+        </div>` : ""}
+        ${RESEARCH_QUESTIONS[p.code] ? `<div class="brief-question"><span>核心验证假设</span><p>${esc(RESEARCH_QUESTIONS[p.code])}</p></div>` : ""}
       </section>
       <div class="research-panels">
         ${renderLinkedEvidence(p)}
         ${renderFactors(p)}
       </div>
-      <details class="desk-panel archive-detail">
-        <summary>展开完整评估档案</summary>
-        ${renderDetailCard(p, index)}
-      </details>
+      <section class="desk-panel archive-open">
+        <div class="panel-head"><h3>完整立项评估档案（执行流程 · 长期技术壁垒 · 成本利润与合规核算）</h3><span class="panel-count">${esc(p.code)}</span></div>
+        <div class="archive-open-body">
+          ${renderUnfoldedArchive(p)}
+        </div>
+      </section>
     </div>
     <aside class="research-context">
       ${renderValidation(p)}
@@ -342,4 +363,50 @@ function saveValidation(event) {
   event.currentTarget.querySelector('.quiet-note').textContent = '仅保存在当前浏览器。' + (exists ? '上次保存于 ' + time + '。' : '');
   document.querySelector('#validationRecord summary').textContent = exists ? '查看 / 更新验证记录' : '记录通过条件与实际结果';
   message.textContent = exists ? '验证记录已保存。' : '已恢复为待验证。';
+}
+
+
+function renderUnfoldedArchive(p) {
+  const steps = (p.workflow_steps || []).map((st, i) =>
+    `<div class="step-row"><span class="step-no">0${i+1}</span><div>${esc(st)}</div></div>`
+  ).join("");
+  const comp = p.compounding || {
+    tier: "可持续积累",
+    snowball: "初期通过轻量服务验证需求，中期沉淀行业模板与自动化流水线转为订阅制工具。",
+    skill_gain: "沉淀领域工作流编排与产品工程能力。"
+  };
+  const b = p.biz_eval || {
+    cost: "初期成本 <100元", profit: "毛利率 90%+", time: "MVP 5~7天",
+    team: "1~2人", landing: "48h测款 -> 自动化交付 -> 订阅工具", compliance: "遵守平台与数据脱敏规范"
+  };
+  return `
+    <div class="inspector">
+      <span class="sec-label">01 / 运转流程（输入 → 处理 → 产出）</span>
+      <div class="card-cell" style="margin-bottom:18px;">
+        <div class="cell-v">${steps}</div>
+      </div>
+
+      <span class="sec-label">02 / 长期复利壁垒与团队能力沉淀（拒绝纯苦力外包）</span>
+      <div class="grid-2" style="margin-bottom:18px;">
+        <div class="card-cell" style="border-left:2px solid var(--accent);">
+          <span class="cell-k" style="color:var(--text);">长期复利与护城河（为什么能滚雪球）</span>
+          <div class="cell-v">${esc(comp.snowball)}</div>
+        </div>
+        <div class="card-cell" style="border-left:2px solid var(--pos);">
+          <span class="cell-k" style="color:var(--text);">对团队成员的技术与业务成长价值</span>
+          <div class="cell-v">${esc(comp.skill_gain)}</div>
+        </div>
+      </div>
+
+      <span class="sec-label">03 / 成本、收益、工期、人数与合规核算</span>
+      <div class="grid-3" style="margin-bottom:0;">
+        <div class="card-cell"><span class="cell-k">1. 初步资金成本预估</span><div class="cell-v">${esc(b.cost)}</div></div>
+        <div class="card-cell"><span class="cell-k">2. 利润预估与多元收入来源</span><div class="cell-v">${esc(b.profit)}</div></div>
+        <div class="card-cell"><span class="cell-k">3. 时间成本（研发与回本周期）</span><div class="cell-v">${esc(b.time)}</div></div>
+        <div class="card-cell"><span class="cell-k">4. 需要人数与角色配置</span><div class="cell-v">${esc(b.team)}</div></div>
+        <div class="card-cell"><span class="cell-k">5. 落地推进路径</span><div class="cell-v">${esc(b.landing)}</div></div>
+        <div class="card-cell"><span class="cell-k">6. 国内法律与平台合规边界</span><div class="cell-v">${esc(b.compliance)}</div></div>
+      </div>
+    </div>
+  `;
 }
