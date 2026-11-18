@@ -25,10 +25,10 @@
       "how_to_extend": "在 scripts/radar_cli.py 的 collect_wechat_sogou() 列表中添加新检索词即可。"
     },
     {
-      "name": "渠道 4：蝉妈妈 / 闲鱼 / 小红书 CSV 导表收件箱 (inbox/)",
-      "type": "半自动导表导入 · 避开高危反爬与封号",
+      "name": "渠道 4：蝉妈妈 / 闲鱼 / 小红书 Playwright XHR 自动抓包器 + CSV 双通道",
+      "type": "支持免破解自动拦截 XHR 数据包 (auto_browser_collector.py) + 兼容 CSV 导表",
       "count_info": "当前已导入 5 条高价值交易与投流信号（支持无限追加 CSV 文件）",
-      "how_it_works": "蝉妈妈、闲鱼、小红书有极严的滑块与设备指纹风控，写死爬虫极易封团队账号。因此设计了 inbox/ 收件箱机制：团队成员从网页端导出或按模板填好 CSV 丢进 inbox/ 文件夹，运行 radar_cli.py 即自动去重入库。",
+      "how_it_works": "采用『真机浏览器登录态复用 + 后台 JSON 响应包自动拦截』方案（scripts/auto_browser_collector.py）：首次运行 --login 扫码登录一次永久保存 Cookie 到本地 .browser_profile/；后续运行 --collect 即可自动打开榜单页面，直接通过 page.on('response') 在内存中截获蝉妈妈/闲鱼/小红书后台返回的 JSON 数据包自动入库，无需逆向 JS 签名，也无需每次手动导 CSV！",
       "limitations": "需要市场部同事每周花 5 分钟导出一次表格放入 inbox/ 目录。",
       "how_to_extend": "支持任意多个 .csv 文件放入 inbox/，只要包含标准表头即可自动合并。"
     }
@@ -70,7 +70,7 @@
       "phase": "Phase 2（第 1~2 周 · 多人并行模块）",
       "title": "扩充垂直采集插件 + 接入大模型 API 深度痛点聚类",
       "owner": "模块 A（爬虫同事）+ 模块 B（Prompt/评估同事）",
-      "details": "• 模块 A（scripts/collectors/）：新增七麦数据榜单导入器、知乎高赞好问采集器、GitHub Trending 变现工具监控。\n• 模块 B（scripts/evaluator/）：接入 DeepSeek-V3 API，对每日新抓入的信号自动提炼『买单人群+痛点+妥协方案』并自动生成新立项卡草稿。"
+      "details": "• 模块 A（scripts/collectors/）：新增七麦数据榜单导入器、知乎高赞好问采集器、GitHub Trending 变现工具监控。\n• 模块 B（scripts/evaluator/）：接入 DeepSeek-V4.1-Flash API，对每日新抓入的信号自动提炼『买单人群+痛点+妥协方案』并自动生成新立项卡草稿。"
     },
     {
       "phase": "Phase 3（第 3~4 周 · 自动化闭环）",
