@@ -167,7 +167,7 @@ function updateSelection(list) {
           <div class="sharp-badge">AI 锐评 · 商业切入点与真实数据诊断</div>
           <p>${esc(p.ai_sharp_review)}</p>
         </div>` : ""}
-        ${RESEARCH_QUESTIONS[p.code] ? `<div class="brief-question"><span>核心验证假设</span><p>${esc(RESEARCH_QUESTIONS[p.code])}</p></div>` : ""}
+        ${RESEARCH_QUESTIONS[p.code] ? `<div class="brief-question"><span>关键问题</span><p>${esc(RESEARCH_QUESTIONS[p.code])}</p></div>` : ""}
       </section>
       <div class="research-panels">
         ${renderLinkedEvidence(p)}
@@ -182,7 +182,7 @@ function updateSelection(list) {
     </div>
     <aside class="research-context">
       ${renderValidation(p)}
-      ${p.who_pays_and_price ? `<section class="desk-panel"><div class="panel-head"><h3>客群与定价</h3><span class="panel-count">研究假设</span></div><div class="context-note">${esc(p.who_pays_and_price)}</div></section>` : ''}
+      ${p.who_pays_and_price ? `<section class="desk-panel"><div class="panel-head"><h3>客群与定价</h3></div><div class="context-note">${esc(p.who_pays_and_price)}</div></section>` : ''}
     </aside>`;
 }
 
@@ -246,7 +246,6 @@ function renderFactors(p) {
             <div><span>${label}</span><span>${max ? score + '/' + max : '未记录'}</span></div>
             ${max ? `<meter min="0" max="${max}" value="${score}" aria-label="${label}"></meter>` : ''}
           </div>`).join('')}
-        <p class="quiet-note">评分用于比较方向；不代表付费已验证。</p>
       </div>
     </section>`;
 }
@@ -299,8 +298,7 @@ function renderLinkedEvidence(p) {
       ${evidence.length ? `
         <div class="evidence-list">${rows.slice(0,3).join('')}</div>
         ${rows.length > 3 ? `<details><summary>查看其余 ${rows.length - 3} 条关联</summary><div class="evidence-list">${rows.slice(3).join('')}</div></details>` : ''}
-      ` : '<p class="panel-empty">暂无可打开的关联快照。提报描述和评分不能替代来源记录。</p>'}
-      ${missing ? `<p class="panel-empty">${missing} 条引用未找到当前批次快照。</p>` : ''}
+      ` : '<p class="panel-empty">暂无关联信号记录。</p>'}
     </section>`;
 }
 
@@ -319,7 +317,7 @@ function renderValidation(p) {
             <label>通过条件<textarea id="validationCriterion" rows="2" maxlength="600" placeholder="例如：联系 10 位目标客户，至少 2 位支付定金">${escapeFormValue(report.criterion)}</textarea></label>
             <label>实际结果<textarea id="validationResult" rows="2" maxlength="1200" placeholder="记录触达、询价、付定金人数，以及观察到的阻碍">${escapeFormValue(report.result)}</textarea></label>
             <button class="btn btn-primary" type="submit">保存记录</button>
-            <small class="quiet-note">仅保存在当前浏览器。${report.updated ? ' 上次保存于 ' + esc(report.updated) + '。' : ''}</small>
+            <small class="quiet-note">${report.updated ? '上次保存：' + esc(report.updated) : ''}</small>
             <p id="validationMessage" role="status"></p>
           </form>
         </details>
@@ -360,7 +358,7 @@ function saveValidation(event) {
   watch.scrollLeft = scroll;
   document.getElementById('validationStage').textContent = stageName(stage);
   const exists = Boolean(next[selectedCode]);
-  event.currentTarget.querySelector('.quiet-note').textContent = '仅保存在当前浏览器。' + (exists ? '上次保存于 ' + time + '。' : '');
+  event.currentTarget.querySelector('.quiet-note').textContent = exists ? '上次保存：' + time : '';
   document.querySelector('#validationRecord summary').textContent = exists ? '查看 / 更新验证记录' : '记录通过条件与实际结果';
   message.textContent = exists ? '验证记录已保存。' : '已恢复为待验证。';
 }
@@ -386,10 +384,10 @@ function renderUnfoldedArchive(p) {
         <div class="cell-v">${steps}</div>
       </div>
 
-      <span class="sec-label">02 / 长期复利壁垒与团队能力沉淀（拒绝纯苦力外包）</span>
+      <span class="sec-label">02 / 长期复利壁垒与团队技术沉淀</span>
       <div class="grid-2" style="margin-bottom:18px;">
         <div class="card-cell" style="border-left:2px solid var(--accent);">
-          <span class="cell-k" style="color:var(--text);">长期复利与护城河（为什么能滚雪球）</span>
+          <span class="cell-k" style="color:var(--text);">长期复利与数据壁垒</span>
           <div class="cell-v">${esc(comp.snowball)}</div>
         </div>
         <div class="card-cell" style="border-left:2px solid var(--pos);">

@@ -75,10 +75,10 @@ function renderDetailCard(p, idx) {
         </div>
       </div>
 
-      <span class="sec-label">02 / 复利滚雪球路径与团队能力沉淀（拒绝纯苦力外包）</span>
+      <span class="sec-label">02 / 长期复利壁垒与团队技术沉淀</span>
       <div class="grid-2">
         <div class="card-cell" style="border-left:2px solid var(--accent);">
-          <span class="cell-k" style="color:var(--text);">长期复利与护城河（为什么能滚雪球）</span>
+          <span class="cell-k" style="color:var(--text);">长期复利与数据壁垒</span>
           <div class="cell-v">${esc(comp.snowball)}</div>
         </div>
         <div class="card-cell" style="border-left:2px solid var(--pos);">
@@ -87,7 +87,7 @@ function renderDetailCard(p, idx) {
         </div>
       </div>
 
-      <span class="sec-label">成本与收益假设 · 合规注意事项</span>
+      <span class="sec-label">03 / 成本、收益、工期、人数与合规核算</span>
       <div class="grid-3">
         <div class="card-cell"><span class="cell-k">1. 初步资金成本预估</span><div class="cell-v">${esc(b.cost)}</div></div>
         <div class="card-cell"><span class="cell-k">2. 利润预估与多元收入来源</span><div class="cell-v">${esc(b.profit)}</div></div>
@@ -99,7 +99,7 @@ function renderDetailCard(p, idx) {
 
       <span class="sec-label">04 / 48 小时低成本测款探针与关联一手证据快照</span>
       <div class="card-cell" style="margin-bottom:12px;">
-        <span class="cell-k" style="color:var(--text);">明日可执行 48 小时测款动作（仅作需求验证探针，验证通过后转自动化产品）</span>
+        <span class="cell-k" style="color:var(--text);">48 小时测款动作</span>
         <div class="cell-v">${esc(p.plan_48h)}</div>
       </div>
       ${chips ? `<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;"><span style="font-size:12px;color:var(--text-muted);">点击查看本地免登录证据快照：</span>${chips}</div>` : ''}
@@ -318,8 +318,7 @@ function sourceLink(value) {
     const home = url.pathname === '/' && !url.search && !url.hash;
     const listing = url.hostname === 'apps.apple.com';
     return {url: url.href, label: home ? '平台首页' : listing ? '应用商店页面' : '来源链接',
-      hint: home ? '采集记录仅保留了平台首页，无法直接核对这条内容。' :
-        listing ? '应用页面不一定能定位到该条评论。' : '外部页面可访问性由来源平台决定。'};
+      hint: ''};
   } catch { return null; }
 }
 
@@ -344,7 +343,7 @@ function openSnap(id) {
     link.href = source.url;
     link.textContent = source.label + ' ↗';
   } else link.removeAttribute('href');
-  document.getElementById('mHint').textContent = source?.hint || '当前记录没有可用的原站链接。';
+  document.getElementById('mHint').textContent = '';
   document.getElementById('snapModal').showModal();
 }
 
