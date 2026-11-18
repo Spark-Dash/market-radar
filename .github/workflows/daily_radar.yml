@@ -23,6 +23,7 @@ jobs:
 
       - name: Run incremental collection, cleaning, archive and dashboard build
         run: |
+          python3 scripts/tech_radar.py
           python3 scripts/radar_cli.py run-all
 
       - name: Commit and push incremental JSONL, archive and updated dashboard
