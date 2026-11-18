@@ -364,6 +364,95 @@ function openSnap(id) {
   document.getElementById('snapModal').style.display = 'flex';
 }
 
+
+function renderTechRadar() {
+  const items = DATA.tech_radar || [];
+  const cntEl = document.getElementById("lblTechCnt");
+  if (cntEl) cntEl.innerText = items.length;
+  const rows = items.map((it, i) => `
+    <tr>
+      <td width="50" style="font-family:monospace;color:var(--text-muted);">${String(i+1).padStart(2,"0")}</td>
+      <td width="190">
+        <a href="${esc(it.url)}" target="_blank" style="color:var(--accent);font-weight:600;text-decoration:none;">${esc(it.name)} ↗</a>
+        <div style="margin-top:4px;"><span class="pill">${esc(it.category)}</span> <small style="color:var(--text-muted)">${esc(it.language)}</small></div>
+      </td>
+      <td width="110" style="font-variant-numeric:tabular-nums;">
+        <strong style="color:var(--text);">${it.stars}</strong> <small style="color:var(--text-muted)">stars/pts</small><br>
+        <small style="color:var(--text-muted)">${esc(it.updated_at)}</small>
+      </td>
+      <td style="color:var(--text-secondary);">${esc(it.description)}</td>
+      <td width="270" style="color:var(--text-secondary);">${esc(it.internal_use)}</td>
+      <td width="270" style="color:var(--text-secondary);">${esc(it.commercial_idea)}</td>
+    </tr>
+  `).join("");
+
+  document.getElementById("tab-tech").innerHTML = `
+    <div class="inspector" style="margin-bottom:16px;padding:16px 20px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <span class="sec-label" style="margin-bottom:4px;">专项 2 · GitHub Trending 与前沿技术雷达</span>
+          <div style="color:var(--text-secondary);font-size:13px;">每日自动通过 GitHub Search API 与 Hacker News 抓取高星开源工具，按“向内能否接入团队 Codex/DeepSeek 提效”与“向外能否本土化变现”双维度筛选。更新命令：<code>python3 scripts/tech_radar.py</code></div>
+        </div>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>序号</th>
+            <th>开源项目 / 工具</th>
+            <th>热度与更新时间</th>
+            <th>项目功能简介</th>
+            <th>向内提效（接入团队 Codex / DeepSeek）</th>
+            <th>向外变现（国内产品化思路）</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  `;
+}
+
+function renderToolkit() {
+  document.getElementById("tab-toolkit").innerHTML = `
+    <div class="inspector">
+      <div class="ins-head">
+        <div>
+          <span class="sec-label">专项 3 · 团队统一开发与协作工具栈</span>
+          <h2 class="ins-title">标准工具栈：Codex CLI + DeepSeek Harness（基于 DeepSeek-V4.1-Flash）</h2>
+        </div>
+        <span class="pill pill-s">已内置 team-toolkit/ 一键初始化包</span>
+      </div>
+
+      <div class="summary-lead">
+        团队不再耗费精力横向对比多款 IDE 与插件，直接统一锁定 <strong>Codex CLI + DeepSeek Harness</strong> 作为标准研发与自动化底座。仓库已内置 <code>team-toolkit/</code> 目录，任何成员拉取仓库后执行一行命令即可在 3 分钟内对齐全部配置与共享 Skill。
+      </div>
+
+      <span class="sec-label">01 / 新成员 3 分钟一键对齐环境</span>
+      <div class="card-cell" style="margin-bottom:20px;">
+        <div class="cell-v" style="margin-bottom:8px;">在终端克隆本仓库后直接运行初始化脚本（自动检查环境、安装共享 <code>market-radar</code> Skill 到 <code>~/.codex/skills/</code> 并生成模型配置模板）：</div>
+        <code style="display:block;padding:12px;">git clone https://github.com/donghyq/market-radar.git && cd market-radar && bash team-toolkit/init_team_env.sh</code>
+      </div>
+
+      <span class="sec-label">02 / 团队统一配置与协作约定（位于 team-toolkit/ 目录）</span>
+      <div class="grid-3">
+        <div class="card-cell">
+          <span class="cell-k">1. 统一项目规则文件 (team-toolkit/AGENTS.md)</span>
+          <div class="cell-v">开启任何新项目时，将 <code>team-toolkit/AGENTS.md</code> 复制到新仓库根目录，自动约束 Codex 与 DeepSeek Harness 遵循“先读后写、小步验证、JSONL 无冲突存储、平实中文文档”规范。</div>
+        </div>
+        <div class="card-cell">
+          <span class="cell-k">2. 主力模型与 Prefix Caching 降本约定</span>
+          <div class="cell-v">日常高频任务（文本清洗、结构化 JSON 提取、Remotion 动画分镜生成、代码辅助）统一调用 <code>deepseek-v4.1-flash</code>；固定系统提示词与背景置于最前以命中前缀缓存，成本降低 80%。</div>
+        </div>
+        <div class="card-cell">
+          <span class="cell-k">3. 共享 Skill 与自动化脚本接力</span>
+          <div class="cell-v">团队沉淀的通用能力统一封装为标准 Skill（含 <code>SKILL.md</code> 与无外部依赖的 <code>scripts/*.py</code>），通过 <code>init_team_env.sh</code> 一键分发至全员本地。</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 function switchTab(id, btn) {
   ['tab-projects','tab-signals','tab-submit','tab-whitepaper','tab-roadmap'].forEach(t => {
     document.getElementById(t).style.display = (t === id) ? 'block' : 'none';
@@ -389,6 +478,8 @@ function filterRows() {
   document.getElementById('lblBatches').innerText = archs.map(a => a.date).join(', ') || '2026-11-18';
   renderProjects();
   renderSignals();
+  renderTechRadar();
+  renderToolkit();
   renderSubmitTab();
   renderWhitepaper();
   renderRoadmapAndArchive();
