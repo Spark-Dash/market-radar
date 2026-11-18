@@ -28,7 +28,7 @@ function renderDetailCard(p, idx) {
   ).join('');
 
   const comp = p.compounding || {
-    tier: "A级复利 · 标准化产品资产",
+    tier: "可持续积累 · 标准化产品资产",
     snowball: "初期通过轻量服务验证需求，中期沉淀行业模板与自动化流水线转为订阅制SaaS。",
     skill_gain: "沉淀领域工作流编排与高转化产品工程能力。"
   };
@@ -60,7 +60,7 @@ function renderDetailCard(p, idx) {
         </div>
       </div>
 
-      <span class="sec-label">01 / 产品定位与一句话定义</span>
+      <span class="sec-label">产品定位</span>
       <div class="summary-lead">${esc(p.plain_what_to_do)}</div>
 
       <div class="grid-2">
@@ -75,10 +75,10 @@ function renderDetailCard(p, idx) {
         </div>
       </div>
 
-      <span class="sec-label">02 / 复利滚雪球路径与团队能力沉淀（拒绝纯苦力外包）</span>
+      <span class="sec-label">长期积累与团队技术沉淀</span>
       <div class="grid-2">
         <div class="card-cell" style="border-left:2px solid var(--accent);">
-          <span class="cell-k" style="color:var(--text);">长期复利与护城河（为什么能滚雪球）</span>
+          <span class="cell-k" style="color:var(--text);">长期积累价值</span>
           <div class="cell-v">${esc(comp.snowball)}</div>
         </div>
         <div class="card-cell" style="border-left:2px solid var(--pos);">
@@ -87,17 +87,17 @@ function renderDetailCard(p, idx) {
         </div>
       </div>
 
-      <span class="sec-label">03 / 市场部立项六维商业与合规核算表</span>
+      <span class="sec-label">03 / 成本、收益与合规核算</span>
       <div class="grid-3">
-        <div class="card-cell"><span class="cell-k">1. 初步资金成本预估</span><div class="cell-v">${esc(b.cost)}</div></div>
-        <div class="card-cell"><span class="cell-k">2. 利润预估与多元收入来源</span><div class="cell-v">${esc(b.profit)}</div></div>
-        <div class="card-cell"><span class="cell-k">3. 时间成本（研发与回本周期）</span><div class="cell-v">${esc(b.time)}</div></div>
-        <div class="card-cell"><span class="cell-k">4. 需要人数与角色配置</span><div class="cell-v">${esc(b.team)}</div></div>
-        <div class="card-cell"><span class="cell-k">5. 三阶段落地推进路径</span><div class="cell-v">${esc(b.landing)}</div></div>
-        <div class="card-cell"><span class="cell-k">6. 国内法律与平台合规边界</span><div class="cell-v">${esc(b.compliance)}</div></div>
+        <div class="card-cell"><span class="cell-k">初步成本预估</span><div class="cell-v">${esc(b.cost)}</div></div>
+        <div class="card-cell"><span class="cell-k">利润预估与收入来源</span><div class="cell-v">${esc(b.profit)}</div></div>
+        <div class="card-cell"><span class="cell-k">研发与回本周期</span><div class="cell-v">${esc(b.time)}</div></div>
+        <div class="card-cell"><span class="cell-k">人员配置</span><div class="cell-v">${esc(b.team)}</div></div>
+        <div class="card-cell"><span class="cell-k">5. 落地推进路径</span><div class="cell-v">${esc(b.landing)}</div></div>
+        <div class="card-cell"><span class="cell-k">法律与平台合规</span><div class="cell-v">${esc(b.compliance)}</div></div>
       </div>
 
-      <span class="sec-label">04 / 48 小时低成本测款探针与关联一手证据快照</span>
+      <span class="sec-label">最小验证方案与关联证据</span>
       <div class="card-cell" style="margin-bottom:12px;">
         <span class="cell-k" style="color:var(--text);">明日可执行 48 小时测款动作（仅作需求验证探针，验证通过后转自动化产品）</span>
         <div class="cell-v">${esc(p.plan_48h)}</div>
@@ -113,7 +113,7 @@ function renderProjects() {
   if (SELECTED_IDX >= list.length) SELECTED_IDX = 0;
 
   const rows = list.map((p, i) => {
-    const compTier = (p.compounding && p.compounding.tier) ? p.compounding.tier : 'A级复利';
+    const compTier = (p.compounding && p.compounding.tier) ? p.compounding.tier : '可持续积累';
     const b = p.biz_eval || {};
     const isSel = (!EXPAND_ALL && i === SELECTED_IDX) ? 'selected' : '';
     return `
@@ -144,7 +144,7 @@ function renderProjects() {
           <tr>
             <th>排名</th>
             <th>项目方向名称</th>
-            <th>复利与成长评级</th>
+            <th>项目属性</th>
             <th>来源通道</th>
             <th>人数与研发周期</th>
             <th>AI 锐评总分</th>
@@ -217,7 +217,7 @@ function renderSubmitTab() {
       <div class="ins-head">
         <div>
           <span class="sec-label">内部人脉与新商机提报通道</span>
-          <h2 class="ins-title">录入新市场方向并自动执行五维 AI 锐评与六维商业核算</h2>
+          <h2 class="ins-title">录入新市场方向并自动执行立项评分与商业核算</h2>
         </div>
       </div>
       <div class="grid-2">
@@ -273,7 +273,7 @@ function submitNewIdea() {
     who_pays_and_price: buyer,
     ai_sharp_review: paid ? '人脉痛点明确且有付费意愿，重点验证能否从单点熟人复制至公域标准品。' : '当前仅口头意向，必须先收定金验证真伪。',
     plan_48h: `48小时内由 ${proposer} 向客户发去半自动样品 Demo 并收取 99~299 元测试定金。`,
-    compounding: { tier: "A级复利 · 垂直SaaS沉淀", snowball: "从熟人定制切入，提炼通用行业规则后转为按月订阅制工具。", skill_gain: "沉淀垂直行业工作流与自动化交付能力。" },
+    compounding: { tier: "垂直工具沉淀", snowball: "从熟人定制切入，提炼通用行业规则后转为按月订阅制工具。", skill_gain: "沉淀垂直行业工作流与自动化交付能力。" },
     biz_eval: { cost: "初期成本 <100元", profit: `按 ${buyer} 测算，毛利率 90%+`, time: `MVP ${days} 天`, team: "1.5人", landing: "熟人首单验证 -> 半自动脚本 -> 标准化SaaS", compliance: "注意数据脱敏与平台合规" },
     evidence_ids: []
   };
@@ -346,7 +346,7 @@ function renderRoadmapAndArchive() {
 
   document.getElementById('tab-roadmap').innerHTML = `
     <div class="inspector">
-      <span class="sec-label">系统演进 Roadmap（广谱发现 / 可信度分级 / 平台化与鉴权防攻击 / 合规护栏）</span>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;"><span class="sec-label" style="margin:0;">本月与本季度迭代计划（与 GitHub Issue 同步）</span><a href="https://github.com/donghyq/market-radar/issues/1" target="_blank" class="btn btn-primary" style="text-decoration:none;">在 GitHub Issue #1 中查看与认领任务 ↗</a></div>
       ${rmHtml}
       <span class="sec-label" style="margin-top:24px;">团队早期 4 个既有想法的复盘归档</span>
       ${oldHtml}
