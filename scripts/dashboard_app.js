@@ -346,7 +346,7 @@ function renderRoadmapAndArchive() {
 
   document.getElementById('tab-roadmap').innerHTML = `
     <div class="inspector">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;"><span class="sec-label" style="margin:0;">本月与本季度迭代计划（与 GitHub Issue 同步）</span><a href="https://github.com/donghyq/market-radar/issues/1" target="_blank" class="btn btn-primary" style="text-decoration:none;">在 GitHub Issue #1 中查看与认领任务 ↗</a></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;"><span class="sec-label" style="margin:0;">本月与本季度迭代计划（与 GitHub Issue 同步）</span><a href="https://github.com/donghyq/market-radar/issues/2" target="_blank" class="btn btn-primary" style="text-decoration:none;">在 GitHub Issue #2 中查看与认领任务 ↗</a></div>
       ${rmHtml}
       <span class="sec-label" style="margin-top:24px;">团队早期 4 个既有想法的复盘归档</span>
       ${oldHtml}
