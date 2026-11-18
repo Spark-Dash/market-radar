@@ -50,6 +50,18 @@ function renderProjects() {
             <div>${esc(p.ai_sharp_review)}</div>
           </div>
         </div>
+        ${p.biz_eval ? `
+        <div class="panel" style="margin-bottom:14px;background:rgba(15,23,42,0.82);border-color:rgba(56,189,248,0.28);">
+          <span class="panel-title" style="color:var(--blue);font-size:14px;margin-bottom:10px;">📊 市场部立项六维评估账本（成本 / 利润与来源 / 时间 / 人数 / 落地方向 / 合规风险）</span>
+          <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:10px;font-size:12.8px;">
+            <div style="background:#090d16;padding:10px 12px;border-radius:8px;border:1px solid var(--border);"><b style="color:var(--amber);display:block;margin-bottom:3px;">💸 1. 初步成本预估</b>${esc(p.biz_eval.cost)}</div>
+            <div style="background:#090d16;padding:10px 12px;border-radius:8px;border:1px solid var(--border);"><b style="color:var(--green);display:block;margin-bottom:3px;">📈 2. 利润预估与收入来源</b>${esc(p.biz_eval.profit)}</div>
+            <div style="background:#090d16;padding:10px 12px;border-radius:8px;border:1px solid var(--border);"><b style="color:var(--blue);display:block;margin-bottom:3px;">⏱️ 3. 时间成本（研发+回本）</b>${esc(p.biz_eval.time)}</div>
+            <div style="background:#090d16;padding:10px 12px;border-radius:8px;border:1px solid var(--border);"><b style="color:var(--indigo);display:block;margin-bottom:3px;">👥 4. 需要人数与分工</b>${esc(p.biz_eval.team)}</div>
+            <div style="background:#090d16;padding:10px 12px;border-radius:8px;border:1px solid var(--border);"><b style="color:#f472b6;display:block;margin-bottom:3px;">🧭 5. 大致落地方向（三步走）</b>${esc(p.biz_eval.landing)}</div>
+            <div style="background:#090d16;padding:10px 12px;border-radius:8px;border:1px solid var(--border);"><b style="color:var(--red);display:block;margin-bottom:3px;">⚖️ 6. 国内合规风险与规避</b>${esc(p.biz_eval.compliance)}</div>
+          </div>
+        </div>` : ""}
         <div class="act-bar"><b>⚡ 48 小时低成本测款动作（明日即可执行）：</b>${esc(p.plan_48h)}</div>
         ${chips ? `<div class="ev-chips"><span>📌 点击免登录查看本方案关联的真实数据快照：</span>${chips}</div>` : ''}
       </div>
@@ -130,7 +142,15 @@ function submitNewIdea() {
     who_pays_and_price: buyer,
     ai_sharp_review: '【AI 锐评自动诊断】' + risks.join(' '),
     plan_48h: `由 ${proposer} 在 48 小时内向该人脉客户发去一份手工/半自动跑出的样品 Demo，要求对方先预付 99~299 元测试定金，收到钱当天启动开发。`,
-    evidence_ids: []
+    evidence_ids: [],
+    biz_eval: {
+      cost: "初期测试算力与服务器成本 <100元（基于 DeepSeek-V4.1-Flash 极低单价）",
+      profit: `按『${buyer}』测算，毛利率 90%+，首月目标成交 30~50 单验证现金流`,
+      time: `MVP 预计 ${days} 天完成，48 小时内向人脉客户收定金测款`,
+      team: "1~2 人（1 名研发快速搭建原型 + 提报人对接人脉渠道）",
+      landing: "第1周：人工+脚本半自动向熟人客户交付首单；第2~3周：标准化为自助工具扩客",
+      compliance: "注意数据隐私脱敏与平台交易规则，优先以技术服务或本地桌面工具形态交付"
+    }
   };
 
   let local = [];
