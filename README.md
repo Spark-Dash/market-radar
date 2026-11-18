@@ -2,7 +2,7 @@
 
 在线终端（GitHub Pages）：`https://donghyq.github.io/market-radar/`  
 本地入口：克隆仓库后直接打开根目录 `index.html`（单文件自包含，内置全量证据快照，无需外部网络请求或登录）。
-Roadmap 追踪（GitHub Issue #1）：`https://github.com/donghyq/market-radar/issues/1`
+Roadmap 追踪（GitHub Issue #2）：`https://github.com/donghyq/market-radar/issues/2`
 
 ---
 
