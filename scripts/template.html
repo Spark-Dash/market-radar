@@ -144,9 +144,11 @@
     <div class="nav">
       <button class="nav-btn active" onclick="switchTab('tab-projects', this)">立项评估</button>
       <button class="nav-btn" onclick="switchTab('tab-signals', this)">信号证据库 (<span id="lblSigCnt">0</span>)</button>
+      <button class="nav-btn" onclick="switchTab('tab-tech', this)">前沿技术雷达 (<span id="lblTechCnt">0</span>)</button>
+      <button class="nav-btn" onclick="switchTab('tab-toolkit', this)">团队工具规范 (Codex + DeepSeek)</button>
       <button class="nav-btn" onclick="switchTab('tab-submit', this)">录入新方向</button>
-      <button class="nav-btn" onclick="switchTab('tab-whitepaper', this)">采集与导表说明</button>
-      <button class="nav-btn" onclick="switchTab('tab-roadmap', this)">Roadmap 与历史归档</button>
+      <button class="nav-btn" onclick="switchTab('tab-whitepaper', this)">采集说明</button>
+      <button class="nav-btn" onclick="switchTab('tab-roadmap', this)">Roadmap</button>
     </div>
     <div class="metrics-inline">
       <span>候选立项 <strong id="kpiProjects">0</strong></span>
@@ -158,6 +160,8 @@
 
   <div id="tab-projects"></div>
   <div id="tab-signals" style="display:none;"></div>
+  <div id="tab-tech" style="display:none;"></div>
+  <div id="tab-toolkit" style="display:none;"></div>
   <div id="tab-submit" style="display:none;"></div>
   <div id="tab-whitepaper" style="display:none;"></div>
   <div id="tab-roadmap" style="display:none;"></div>
