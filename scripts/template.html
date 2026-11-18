@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Market Radar · 中国互联网真实商机与 AI 锐评投研台</title>
+<style>
+  :root {
+    --bg: #090d16; --surface: #111827; --card: #161f33; --card-hover: #1e2942;
+    --border: rgba(148,163,184,0.16); --border-hi: rgba(56,189,248,0.45);
+    --text: #f8fafc; --sub: #94a3b8; --blue: #38bdf8; --indigo: #818cf8;
+    --green: #34d399; --amber: #fbbf24; --red: #f87171;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Inter", sans-serif;
+    background: radial-gradient(circle at 15% 0%, rgba(56,189,248,0.09), transparent 40%),
+                radial-gradient(circle at 85% 10%, rgba(129,140,248,0.08), transparent 40%), var(--bg);
+    color: var(--text); padding: 28px 36px; line-height: 1.6;
+  }
+  .container { max-width: 1360px; margin: 0 auto; }
+  .hero {
+    display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 16px;
+    padding: 22px 26px; background: linear-gradient(135deg, rgba(30,41,59,0.85), rgba(15,23,42,0.9));
+    border: 1px solid var(--border); border-radius: 16px; margin-bottom: 20px;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.35);
+  }
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 99px;
+    font-size: 12px; font-weight: 600; background: rgba(52,211,153,0.14); color: var(--green);
+    border: 1px solid rgba(52,211,153,0.35); margin-bottom: 8px;
+  }
+  .hero h1 { margin: 0; font-size: 25px; letter-spacing: -0.3px; }
+  .hero p { margin: 6px 0 0; color: var(--sub); font-size: 13.5px; }
+  .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 22px; }
+  .kpi {
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 15px 18px;
+    display: flex; flex-direction: column; justify-content: space-between;
+  }
+  .kpi-val { font-size: 27px; font-weight: 800; color: var(--blue); line-height: 1.1; }
+  .kpi-lbl { font-size: 12.5px; color: var(--sub); margin-top: 6px; }
+  .nav { display: flex; gap: 10px; margin-bottom: 22px; flex-wrap: wrap; border-bottom: 1px solid var(--border); padding-bottom: 14px; }
+  .nav-btn {
+    background: var(--surface); color: var(--sub); border: 1px solid var(--border);
+    padding: 10px 18px; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 13.5px; transition: all 0.18s;
+  }
+  .nav-btn:hover { color: var(--text); border-color: var(--border-hi); }
+  .nav-btn.active {
+    background: linear-gradient(135deg, var(--blue), var(--indigo)); color: #090d16;
+    border-color: transparent; box-shadow: 0 4px 16px rgba(56,189,248,0.3);
+  }
+  .p-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 24px;
+    margin-bottom: 20px; transition: border-color 0.2s, transform 0.2s;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+  }
+  .p-card:hover { border-color: var(--border-hi); }
+  .p-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 14px; }
+  .tag-pill {
+    display: inline-block; padding: 3px 11px; border-radius: 99px; font-size: 12px; font-weight: 600;
+    background: rgba(56,189,248,0.14); color: var(--blue); border: 1px solid rgba(56,189,248,0.35);
+  }
+  .p-title { margin: 8px 0 0; font-size: 19px; font-weight: 700; color: #fff; }
+  .score-panel { text-align: right; min-width: 240px; background: rgba(9,13,22,0.55); padding: 10px 14px; border-radius: 12px; border: 1px solid var(--border); }
+  .score-num { font-size: 30px; font-weight: 800; color: var(--green); line-height: 1; }
+  .score-num small { font-size: 13px; color: var(--sub); font-weight: 500; }
+  .score-detail { font-size: 11.5px; color: var(--sub); margin-top: 6px; }
+  .what-banner {
+    background: linear-gradient(90deg, rgba(56,189,248,0.12), rgba(129,140,248,0.06));
+    border-left: 4px solid var(--blue); border-radius: 8px; padding: 12px 16px; font-size: 14.5px; margin-bottom: 16px;
+  }
+  .what-banner b { color: var(--blue); }
+  .cols-2 { display: grid; grid-template-columns: 1.15fr 1fr; gap: 16px; margin-bottom: 14px; }
+  .panel { background: rgba(9,13,22,0.6); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; font-size: 13.5px; }
+  .panel-title { font-weight: 700; margin-bottom: 8px; display: block; color: var(--amber); font-size: 13.5px; }
+  .panel-title.green { color: var(--green); }
+  .step-item { display: flex; gap: 10px; margin-bottom: 8px; align-items: flex-start; }
+  .step-idx {
+    background: rgba(56,189,248,0.2); color: var(--blue); font-weight: 700; font-size: 11.5px;
+    min-width: 22px; height: 22px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; margin-top: 2px;
+  }
+  .act-bar {
+    background: rgba(52,211,153,0.08); border: 1px solid rgba(52,211,153,0.3); border-radius: 10px;
+    padding: 11px 15px; font-size: 13.5px; margin-bottom: 12px;
+  }
+  .act-bar b { color: var(--green); }
+  .ev-chips { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12px; color: var(--sub); }
+  .chip-btn {
+    background: #1e293b; color: #e2e8f0; border: 1px solid var(--border); padding: 5px 11px;
+    border-radius: 8px; cursor: pointer; font-size: 12px; transition: all 0.15s;
+  }
+  .chip-btn:hover { background: var(--blue); color: #090d16; border-color: var(--blue); font-weight: 600; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .field label { display: block; font-size: 12.5px; color: var(--sub); margin-bottom: 6px; font-weight: 600; }
+  .field input, .field textarea, .field select {
+    width: 100%; background: #090d16; color: var(--text); border: 1px solid var(--border);
+    padding: 10px 12px; border-radius: 8px; font-size: 13.5px;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--green), #10b981); color: #090d16; border: none;
+    padding: 11px 22px; border-radius: 10px; font-weight: 700; font-size: 14px; cursor: pointer;
+  }
+  table { width: 100%; border-collapse: collapse; background: var(--card); border-radius: 12px; overflow: hidden; font-size: 13px; }
+  th, td { padding: 11px 13px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
+  th { background: #090d16; color: var(--sub); font-weight: 600; }
+  .modal-mask { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 999; align-items: center; justify-content: center; padding: 20px; }
+  .modal { background: var(--card); border: 1px solid var(--blue); border-radius: 14px; max-width: 700px; width: 100%; padding: 24px; }
+  .modal-body { background: #090d16; padding: 14px; border-radius: 10px; font-size: 13.5px; white-space: pre-wrap; margin: 12px 0; border: 1px solid var(--border); }
+  code { background: #090d16; color: var(--blue); padding: 2px 6px; border-radius: 4px; font-size: 12.5px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="hero">
+    <div>
+      <div class="hero-badge">⚡ 每日例行增量引擎已就绪 · JSONL 多人零冲突架构</div>
+      <h1>🎯 Market Radar · 中国互联网商机挖掘与 AI 锐评投研台</h1>
+      <p>直接聚焦有真实付费流水的产品方向 · 点击任意证据可直接弹窗查看本地免登录完整快照</p>
+    </div>
+    <div style="text-align:right;font-size:12.5px;color:var(--sub);">
+      <div>最近更新：<b id="lblUpdated" style="color:var(--text)"></b></div>
+      <div style="margin-top:4px;">历史归档批次：<span id="lblBatches" style="color:var(--blue)"></span></div>
+    </div>
+  </div>
+
+  <div class="kpi-row">
+    <div class="kpi"><div class="kpi-val" id="kpiProjects">0</div><div class="kpi-lbl">🚀 高潜可执行赚钱项目 (个)</div></div>
+    <div class="kpi"><div class="kpi-val" style="color:var(--green)" id="kpiValid">0</div><div class="kpi-lbl">✅ 清洗后有效痛点与交易证据 (条)</div></div>
+    <div class="kpi"><div class="kpi-val" style="color:var(--amber)">4 大渠道</div><div class="kpi-lbl">📡 AppStore差评 / B站高收藏 / 微信 / 导表</div></div>
+    <div class="kpi"><div class="kpi-val" style="color:var(--indigo)" id="kpiArchives">1 期</div><div class="kpi-lbl">🗄️ 永久归档批次 (增量兼容不丢历史)</div></div>
+  </div>
+
+  <div class="nav">
+    <button class="nav-btn active" onclick="switchTab('tab-projects', this)">🚀 1. 赚钱项目立项榜 (首屏核心)</button>
+    <button class="nav-btn" onclick="switchTab('tab-submit', this)">💡 2. 团队人脉/新方向录入与 AI 锐评</button>
+    <button class="nav-btn" onclick="switchTab('tab-whitepaper', this)">📡 3. 渠道采集白皮书 & 蝉妈妈/闲鱼导表教程</button>
+    <button class="nav-btn" onclick="switchTab('tab-signals', this)">🗄️ 4. 免登录全量证据库 (<span id="lblSigCnt">0</span>条)</button>
+    <button class="nav-btn" onclick="switchTab('tab-roadmap', this)">🧭 5. 团队分工 Roadmap & 既有方向复盘归档</button>
+  </div>
+
+  <div id="tab-projects"></div>
+  <div id="tab-submit" style="display:none;"></div>
+  <div id="tab-whitepaper" style="display:none;"></div>
+  <div id="tab-signals" style="display:none;"></div>
+  <div id="tab-roadmap" style="display:none;"></div>
+</div>
+
+<div class="modal-mask" id="snapModal" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal">
+    <h3 id="mTitle" style="margin:0;color:var(--blue);">证据快照</h3>
+    <div id="mMeta" style="font-size:12px;color:var(--sub);margin-top:6px;"></div>
+    <div class="modal-body" id="mBody"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <a id="mLink" href="#" target="_blank" style="color:var(--blue);font-size:13px;">前往原始外部网页（部分平台需登录）↗</a>
+      <button class="btn-primary" style="padding:7px 16px;" onclick="document.getElementById('snapModal').style.display='none'">关闭窗口</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const DATA = __RADAR_DATA_JSON__;
+</script>
+<script src="scripts/dashboard_app.js"></script>
+</body>
+</html>
