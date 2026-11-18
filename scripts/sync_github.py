@@ -20,6 +20,7 @@ STATIC_FILES = [
     "exports/signals_full.csv",
     "data/signals/signals_master.jsonl",
     "scripts/radar_cli.py",
+    "scripts/discovery_scanner.py",
     "scripts/auto_browser_collector.py",
     "scripts/collab_utils.py",
     "scripts/export_dashboard.py",
