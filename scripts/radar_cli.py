@@ -508,12 +508,43 @@ def evaluate_opportunities(conn: sqlite3.Connection) -> int:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Market Radar CLI")
-    parser.add_argument("action", choices=["run-all", "collect", "clean", "evaluate", "export"], default="run-all", nargs="?")
+    parser = argparse.ArgumentParser(description="Market Radar CLI (多渠道采集 + AI锐评评估 + 团队人脉提报)")
+    parser.add_argument("action", choices=["run-all", "collect", "clean", "evaluate", "export", "submit-idea"], default="run-all", nargs="?")
+    parser.add_argument("--title", default="", help="人脉新方向标题")
+    parser.add_argument("--proposer", default="团队成员", help="提报人姓名/人脉来源")
+    parser.add_argument("--what", default="", help="一句话说明具体做什么产品")
+    parser.add_argument("--buyer", default="", help="卖给谁、怎么收费")
+    parser.add_argument("--evidence", default="", help="人脉或市场验证证据")
+    parser.add_argument("--channel", default="人脉私域+小红书/闲鱼", help="首批客户获客渠道")
+    parser.add_argument("--mvp-days", type=int, default=7, help="预计最小可用产品研发天数")
+    parser.add_argument("--unpaid", action="store_true", help="若仅有口头意向尚无付费验证则加上此参数")
     args = parser.parse_args()
 
     conn = get_conn()
     init_db(conn)
+    from collab_utils import sync_db_from_jsonl, dump_db_to_jsonl, submit_custom_idea
+    sync_db_from_jsonl(conn, BASE_WORKSPACE, insert_signal)
+
+    if args.action == "submit-idea":
+        if not args.title or not args.what:
+            print("[ERROR] 提报新方向需提供 --title 与 --what 参数")
+            return
+        out = submit_custom_idea(
+            base_dir=BASE_WORKSPACE,
+            title=args.title,
+            proposer=args.proposer,
+            what_to_do=args.what,
+            buyer_and_price=args.buyer or "待定定价（建议99~299元测款）",
+            evidence_desc=args.evidence or "团队内部人脉一线反馈",
+            acquisition_channel=args.channel,
+            mvp_days=args.mvp_days,
+            has_paid_proof=not args.unpaid,
+        )
+        print(f"[SUBMIT-IDEA] 已完成五维 AI 锐评并入库: {out}")
+        from export_dashboard import export_all
+        export_all(conn, BASE_WORKSPACE)
+        print(f"[EXPORT] 看板已自动刷新: {HTML_PATH}")
+        return
 
     if args.action in ("run-all", "collect"):
         c_csv = ingest_inbox_csv(conn)
@@ -524,7 +555,8 @@ def main() -> None:
 
     if args.action in ("run-all", "clean"):
         stats = clean_and_tag_signals(conn)
-        print(f"[CLEAN] 信号清洗完成: 总计={stats['total']}, 有效={stats['valid']}, 拦截噪音={stats['noise']}")
+        dump_db_to_jsonl(conn, BASE_WORKSPACE)
+        print(f"[CLEAN & ARCHIVE] 信号清洗与历史归档完成: 总计={stats['total']}, 有效={stats['valid']}, 拦截噪音={stats['noise']}")
 
     if args.action in ("run-all", "evaluate"):
         opp_cnt = evaluate_opportunities(conn)
