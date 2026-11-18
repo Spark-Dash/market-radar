@@ -454,8 +454,9 @@ function renderToolkit() {
 }
 
 function switchTab(id, btn) {
-  ['tab-projects','tab-signals','tab-submit','tab-whitepaper','tab-roadmap'].forEach(t => {
-    document.getElementById(t).style.display = (t === id) ? 'block' : 'none';
+  ['tab-projects','tab-signals','tab-tech','tab-toolkit','tab-submit','tab-whitepaper','tab-roadmap'].forEach(t => {
+    const el = document.getElementById(t);
+    if (el) el.style.display = (t === id) ? 'block' : 'none';
   });
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
