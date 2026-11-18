@@ -49,7 +49,10 @@ def export_all(conn=None, base_dir=BASE_DIR):
             except Exception:
                 pass
 
+    tr_path = base_dir / "data" / "tech_radar.json"
+    tech_radar = json.loads(tr_path.read_text(encoding="utf-8")) if tr_path.exists() else {"items": []}
     bundle = {
+        "tech_radar": tech_radar.get("items", []),
         "updated_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
         "projects": projects,
         "existing_ideas": cfg.get("existing_ideas", []),
