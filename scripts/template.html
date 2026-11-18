@@ -3,156 +3,177 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Market Radar · 中国互联网真实商机与 AI 锐评投研台</title>
+<title>Market Radar — 产品立项与市场信号投研终端</title>
 <style>
   :root {
-    --bg: #090d16; --surface: #111827; --card: #161f33; --card-hover: #1e2942;
-    --border: rgba(148,163,184,0.16); --border-hi: rgba(56,189,248,0.45);
-    --text: #f8fafc; --sub: #94a3b8; --blue: #38bdf8; --indigo: #818cf8;
-    --green: #34d399; --amber: #fbbf24; --red: #f87171;
+    --bg: #0b0d11;
+    --surface: #11141b;
+    --panel: #161a23;
+    --border: #222734;
+    --border-focus: #3b82f6;
+    --text: #f3f4f6;
+    --text-secondary: #9ca3af;
+    --text-muted: #6b7280;
+    --accent: #3b82f6;
+    --accent-dim: rgba(59, 130, 246, 0.12);
+    --pos: #10b981;
   }
   * { box-sizing: border-box; }
   body {
-    margin: 0; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Inter", sans-serif;
-    background: radial-gradient(circle at 15% 0%, rgba(56,189,248,0.09), transparent 40%),
-                radial-gradient(circle at 85% 10%, rgba(129,140,248,0.08), transparent 40%), var(--bg);
-    color: var(--text); padding: 28px 36px; line-height: 1.6;
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", "PingFang SC", "Hiragino Sans GB", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 13.5px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
   }
-  .container { max-width: 1360px; margin: 0 auto; }
-  .hero {
-    display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 16px;
-    padding: 22px 26px; background: linear-gradient(135deg, rgba(30,41,59,0.85), rgba(15,23,42,0.9));
-    border: 1px solid var(--border); border-radius: 16px; margin-bottom: 20px;
-    box-shadow: 0 12px 32px rgba(0,0,0,0.35);
+  .shell { max-width: 1380px; margin: 0 auto; padding: 28px 36px 60px; }
+  /* Topbar */
+  .topbar {
+    display: flex; justify-content: space-between; align-items: baseline;
+    border-bottom: 1px solid var(--border); padding-bottom: 18px; margin-bottom: 20px;
   }
-  .hero-badge {
-    display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 99px;
-    font-size: 12px; font-weight: 600; background: rgba(52,211,153,0.14); color: var(--green);
-    border: 1px solid rgba(52,211,153,0.35); margin-bottom: 8px;
+  .brand { display: flex; align-items: baseline; gap: 14px; }
+  .brand h1 { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: -0.2px; color: var(--text); }
+  .brand span { font-size: 12.5px; color: var(--text-muted); }
+  .meta-right { font-size: 12px; color: var(--text-muted); display: flex; gap: 20px; }
+  .meta-right b { color: var(--text-secondary); font-weight: 500; }
+
+  /* Navigation & KPI strip */
+  .subbar {
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;
+    margin-bottom: 22px;
   }
-  .hero h1 { margin: 0; font-size: 25px; letter-spacing: -0.3px; }
-  .hero p { margin: 6px 0 0; color: var(--sub); font-size: 13.5px; }
-  .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 22px; }
-  .kpi {
-    background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 15px 18px;
-    display: flex; flex-direction: column; justify-content: space-between;
-  }
-  .kpi-val { font-size: 27px; font-weight: 800; color: var(--blue); line-height: 1.1; }
-  .kpi-lbl { font-size: 12.5px; color: var(--sub); margin-top: 6px; }
-  .nav { display: flex; gap: 10px; margin-bottom: 22px; flex-wrap: wrap; border-bottom: 1px solid var(--border); padding-bottom: 14px; }
+  .nav { display: flex; gap: 4px; background: var(--surface); padding: 4px; border-radius: 8px; border: 1px solid var(--border); }
   .nav-btn {
-    background: var(--surface); color: var(--sub); border: 1px solid var(--border);
-    padding: 10px 18px; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 13.5px; transition: all 0.18s;
+    background: transparent; color: var(--text-secondary); border: none;
+    padding: 7px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.15s;
   }
-  .nav-btn:hover { color: var(--text); border-color: var(--border-hi); }
-  .nav-btn.active {
-    background: linear-gradient(135deg, var(--blue), var(--indigo)); color: #090d16;
-    border-color: transparent; box-shadow: 0 4px 16px rgba(56,189,248,0.3);
+  .nav-btn:hover { color: var(--text); }
+  .nav-btn.active { background: var(--panel); color: var(--text); box-shadow: 0 1px 2px rgba(0,0,0,0.4); border: 1px solid var(--border); }
+  .metrics-inline { display: flex; gap: 24px; font-size: 12.5px; color: var(--text-muted); }
+  .metrics-inline strong { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; margin-left: 4px; }
+
+  /* Tables */
+  .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 20px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { padding: 10px 14px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: middle; }
+  th { background: #0e1117; color: var(--text-muted); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: 0.3px; }
+  tr.row-item { cursor: pointer; transition: background 0.12s; }
+  tr.row-item:hover { background: rgba(255,255,255,0.02); }
+  tr.row-item.selected { background: var(--accent-dim); }
+  tr.row-item.selected td:first-child { border-left: 3px solid var(--accent); }
+
+  /* Pills & Badges (monochrome + subtle accent) */
+  .pill {
+    display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11.5px; font-weight: 500;
+    background: var(--panel); color: var(--text-secondary); border: 1px solid var(--border);
   }
-  .p-card {
-    background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 24px;
-    margin-bottom: 20px; transition: border-color 0.2s, transform 0.2s;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+  .pill-s { color: #93c5fd; border-color: rgba(59,130,246,0.35); background: rgba(59,130,246,0.1); }
+  .num-score { font-size: 15px; font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
+
+  /* Detail Inspector */
+  .inspector {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 24px 28px; margin-bottom: 24px;
   }
-  .p-card:hover { border-color: var(--border-hi); }
-  .p-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 14px; }
-  .tag-pill {
-    display: inline-block; padding: 3px 11px; border-radius: 99px; font-size: 12px; font-weight: 600;
-    background: rgba(56,189,248,0.14); color: var(--blue); border: 1px solid rgba(56,189,248,0.35);
+  .ins-head {
+    display: flex; justify-content: space-between; align-items: flex-start; gap: 20px;
+    border-bottom: 1px solid var(--border); padding-bottom: 16px; margin-bottom: 20px;
   }
-  .p-title { margin: 8px 0 0; font-size: 19px; font-weight: 700; color: #fff; }
-  .score-panel { text-align: right; min-width: 240px; background: rgba(9,13,22,0.55); padding: 10px 14px; border-radius: 12px; border: 1px solid var(--border); }
-  .score-num { font-size: 30px; font-weight: 800; color: var(--green); line-height: 1; }
-  .score-num small { font-size: 13px; color: var(--sub); font-weight: 500; }
-  .score-detail { font-size: 11.5px; color: var(--sub); margin-top: 6px; }
-  .what-banner {
-    background: linear-gradient(90deg, rgba(56,189,248,0.12), rgba(129,140,248,0.06));
-    border-left: 4px solid var(--blue); border-radius: 8px; padding: 12px 16px; font-size: 14.5px; margin-bottom: 16px;
+  .ins-title { margin: 6px 0 0; font-size: 18px; font-weight: 600; color: var(--text); }
+  .ins-score-box { text-align: right; min-width: 220px; }
+  .ins-score-big { font-size: 26px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; line-height: 1; }
+  .ins-score-sub { font-size: 11.5px; color: var(--text-muted); margin-top: 6px; }
+
+  .sec-label {
+    font-size: 11.5px; font-weight: 600; color: var(--text-muted); text-transform: uppercase;
+    letter-spacing: 0.5px; margin-bottom: 10px; display: block;
   }
-  .what-banner b { color: var(--blue); }
-  .cols-2 { display: grid; grid-template-columns: 1.15fr 1fr; gap: 16px; margin-bottom: 14px; }
-  .panel { background: rgba(9,13,22,0.6); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; font-size: 13.5px; }
-  .panel-title { font-weight: 700; margin-bottom: 8px; display: block; color: var(--amber); font-size: 13.5px; }
-  .panel-title.green { color: var(--green); }
-  .step-item { display: flex; gap: 10px; margin-bottom: 8px; align-items: flex-start; }
-  .step-idx {
-    background: rgba(56,189,248,0.2); color: var(--blue); font-weight: 700; font-size: 11.5px;
-    min-width: 22px; height: 22px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; margin-top: 2px;
+  .summary-lead {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 6px;
+    padding: 12px 16px; color: var(--text); margin-bottom: 20px; font-size: 13.8px;
   }
-  .act-bar {
-    background: rgba(52,211,153,0.08); border: 1px solid rgba(52,211,153,0.3); border-radius: 10px;
-    padding: 11px 15px; font-size: 13.5px; margin-bottom: 12px;
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+  .card-cell {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 14px 16px;
   }
-  .act-bar b { color: var(--green); }
-  .ev-chips { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12px; color: var(--sub); }
-  .chip-btn {
-    background: #1e293b; color: #e2e8f0; border: 1px solid var(--border); padding: 5px 11px;
-    border-radius: 8px; cursor: pointer; font-size: 12px; transition: all 0.15s;
+  .cell-k { font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; display: block; }
+  .cell-v { color: var(--text-secondary); font-size: 13px; }
+  .step-row { display: flex; gap: 10px; margin-bottom: 8px; color: var(--text-secondary); }
+  .step-no { color: var(--text-muted); font-family: monospace; font-size: 12px; min-width: 20px; }
+
+  .btn {
+    background: var(--panel); color: var(--text-secondary); border: 1px solid var(--border);
+    padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; transition: all 0.12s;
   }
-  .chip-btn:hover { background: var(--blue); color: #090d16; border-color: var(--blue); font-weight: 600; }
-  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-  .field label { display: block; font-size: 12.5px; color: var(--sub); margin-bottom: 6px; font-weight: 600; }
-  .field input, .field textarea, .field select {
-    width: 100%; background: #090d16; color: var(--text); border: 1px solid var(--border);
-    padding: 10px 12px; border-radius: 8px; font-size: 13.5px;
+  .btn:hover { color: var(--text); border-color: var(--text-secondary); }
+  .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 500; }
+  .btn-primary:hover { opacity: 0.92; color: #fff; border-color: var(--accent); }
+
+  /* Form controls */
+  input, select, textarea {
+    background: var(--bg); color: var(--text); border: 1px solid var(--border);
+    padding: 8px 12px; border-radius: 6px; font-size: 13px; width: 100%;
   }
-  .btn-primary {
-    background: linear-gradient(135deg, var(--green), #10b981); color: #090d16; border: none;
-    padding: 11px 22px; border-radius: 10px; font-weight: 700; font-size: 14px; cursor: pointer;
-  }
-  table { width: 100%; border-collapse: collapse; background: var(--card); border-radius: 12px; overflow: hidden; font-size: 13px; }
-  th, td { padding: 11px 13px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
-  th { background: #090d16; color: var(--sub); font-weight: 600; }
+  input:focus, select:focus { outline: none; border-color: var(--accent); }
+  .field-lbl { display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; }
+
+  /* Modal */
   .modal-mask { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 999; align-items: center; justify-content: center; padding: 20px; }
-  .modal { background: var(--card); border: 1px solid var(--blue); border-radius: 14px; max-width: 700px; width: 100%; padding: 24px; }
-  .modal-body { background: #090d16; padding: 14px; border-radius: 10px; font-size: 13.5px; white-space: pre-wrap; margin: 12px 0; border: 1px solid var(--border); }
-  code { background: #090d16; color: var(--blue); padding: 2px 6px; border-radius: 4px; font-size: 12.5px; }
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; max-width: 680px; width: 100%; padding: 24px; }
+  .modal-pre { background: var(--bg); padding: 14px; border-radius: 6px; border: 1px solid var(--border); white-space: pre-wrap; font-size: 13px; color: var(--text-secondary); margin: 14px 0; max-height: 380px; overflow-y: auto; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; background: var(--bg); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border); color: var(--text-secondary); }
 </style>
 </head>
 <body>
-<div class="container">
-  <div class="hero">
-    <div>
-      <div class="hero-badge">⚡ 每日例行增量引擎已就绪 · JSONL 多人零冲突架构</div>
-      <h1>🎯 Market Radar · 中国互联网商机挖掘与 AI 锐评投研台</h1>
-      <p>直接聚焦有真实付费流水的产品方向 · 点击任意证据可直接弹窗查看本地免登录完整快照</p>
+<div class="shell">
+  <div class="topbar">
+    <div class="brand">
+      <h1>Market Radar</h1>
+      <span>中国互联网真实商机挖掘与立项评估终端 · 模型底座 DeepSeek-V4.1-Flash</span>
     </div>
-    <div style="text-align:right;font-size:12.5px;color:var(--sub);">
-      <div>最近更新：<b id="lblUpdated" style="color:var(--text)"></b></div>
-      <div style="margin-top:4px;">历史归档批次：<span id="lblBatches" style="color:var(--blue)"></span></div>
+    <div class="meta-right">
+      <span>更新于 <b id="lblUpdated"></b></span>
+      <span>归档批次 <b id="lblBatches"></b></span>
     </div>
   </div>
 
-  <div class="kpi-row">
-    <div class="kpi"><div class="kpi-val" id="kpiProjects">0</div><div class="kpi-lbl">🚀 高潜可执行赚钱项目 (个)</div></div>
-    <div class="kpi"><div class="kpi-val" style="color:var(--green)" id="kpiValid">0</div><div class="kpi-lbl">✅ 清洗后有效痛点与交易证据 (条)</div></div>
-    <div class="kpi"><div class="kpi-val" style="color:var(--amber)">4 大渠道</div><div class="kpi-lbl">📡 AppStore差评 / B站高收藏 / 微信 / 导表</div></div>
-    <div class="kpi"><div class="kpi-val" style="color:var(--indigo)" id="kpiArchives">1 期</div><div class="kpi-lbl">🗄️ 永久归档批次 (增量兼容不丢历史)</div></div>
-  </div>
-
-  <div class="nav">
-    <button class="nav-btn active" onclick="switchTab('tab-projects', this)">🚀 1. 赚钱项目立项榜 (首屏核心)</button>
-    <button class="nav-btn" onclick="switchTab('tab-submit', this)">💡 2. 团队人脉/新方向录入与 AI 锐评</button>
-    <button class="nav-btn" onclick="switchTab('tab-whitepaper', this)">📡 3. 渠道采集白皮书 & 蝉妈妈/闲鱼导表教程</button>
-    <button class="nav-btn" onclick="switchTab('tab-signals', this)">🗄️ 4. 免登录全量证据库 (<span id="lblSigCnt">0</span>条)</button>
-    <button class="nav-btn" onclick="switchTab('tab-roadmap', this)">🧭 5. 团队分工 Roadmap & 既有方向复盘归档</button>
+  <div class="subbar">
+    <div class="nav">
+      <button class="nav-btn active" onclick="switchTab('tab-projects', this)">01 立项评估矩阵 (核心视图)</button>
+      <button class="nav-btn" onclick="switchTab('tab-signals', this)">02 原始信号证据库 (<span id="lblSigCnt">0</span>)</button>
+      <button class="nav-btn" onclick="switchTab('tab-submit', this)">03 录入人脉新方向</button>
+      <button class="nav-btn" onclick="switchTab('tab-whitepaper', this)">04 采集机制与导表说明</button>
+      <button class="nav-btn" onclick="switchTab('tab-roadmap', this)">05 架构演进与历史想法归档</button>
+    </div>
+    <div class="metrics-inline">
+      <span>候选立项 <strong id="kpiProjects">0</strong></span>
+      <span>有效证据 <strong id="kpiValid">0</strong></span>
+      <span>覆盖渠道 <strong>5 类</strong></span>
+      <span>归档期数 <strong id="kpiArchives">1</strong></span>
+    </div>
   </div>
 
   <div id="tab-projects"></div>
+  <div id="tab-signals" style="display:none;"></div>
   <div id="tab-submit" style="display:none;"></div>
   <div id="tab-whitepaper" style="display:none;"></div>
-  <div id="tab-signals" style="display:none;"></div>
   <div id="tab-roadmap" style="display:none;"></div>
 </div>
 
 <div class="modal-mask" id="snapModal" onclick="if(event.target===this)this.style.display='none'">
   <div class="modal">
-    <h3 id="mTitle" style="margin:0;color:var(--blue);">证据快照</h3>
-    <div id="mMeta" style="font-size:12px;color:var(--sub);margin-top:6px;"></div>
-    <div class="modal-body" id="mBody"></div>
     <div style="display:flex;justify-content:space-between;align-items:center;">
-      <a id="mLink" href="#" target="_blank" style="color:var(--blue);font-size:13px;">前往原始外部网页（部分平台需登录）↗</a>
-      <button class="btn-primary" style="padding:7px 16px;" onclick="document.getElementById('snapModal').style.display='none'">关闭窗口</button>
+      <strong id="mTitle" style="font-size:15px;">证据快照</strong>
+      <button class="btn" onclick="document.getElementById('snapModal').style.display='none'">关闭</button>
+    </div>
+    <div id="mMeta" style="font-size:12px;color:var(--text-muted);margin-top:6px;"></div>
+    <div class="modal-pre" id="mBody"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;">
+      <span style="color:var(--text-muted);">提示：以上为采集入库时的本地完整文本快照，无需登录外部网站。</span>
+      <a id="mLink" href="#" target="_blank" style="color:var(--accent);text-decoration:none;">访问原始网页 ↗</a>
     </div>
   </div>
 </div>
