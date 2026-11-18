@@ -1,92 +1,179 @@
-# 🎯 Market Radar · 中国互联网商机挖掘与 AI 锐评投研台
+# Market Radar — 中国互联网商机挖掘与立项投研终端
 
-> **在线免登录看板（GitHub Pages）**：`https://donghyq.github.io/market-radar/`  
-> **本地双击即开入口**：克隆仓库后直接双击根目录 `index.html`（内置全量免登录证据快照弹窗）
-
----
-
-## 一、信息是怎么抓的？有哪些渠道？抓了多少？有什么限制？（彻底打开黑盒）
-
-本工具拒绝抓取泛科技新闻，只抓取**直接反映真实付费流水与用户具体抱怨**的 4 类中国互联网信号源：
-
-| 渠道名称 | 抓取方式与技术原理 | 当前入库条数 | 存在的问题 / 边界限制 | 怎么新增关键词或扩充 |
-| :--- | :--- | :--- | :--- | :--- |
-| **1. Apple 中国区 App Store 差评采集** | 调用官方公开接口 `itunes.apple.com/search?country=cn` 检索赛道内高评价数工具 App，再拉取 `customerreviews/id={appId}/sortby=mostrecent/json` RSS 流，自动过滤出 **1~3 星且含『扣费/太贵/不能打印/卡顿/垃圾』** 的付费用户真实差评 | **21 条**<br>（如《试卷宝》16万评、《小白打印》13万评、《说得提词器》4.2万评） | **优点**：100% 免登录、无反爬、全自动；<br>**限制**：仅覆盖已上架苹果商店的 App，看不到微信私域或纯小程序流水 | 打开 `scripts/radar_cli.py`，在 `collect_appstore()` 的 `queries` 列表加一行 `("分类", "关键词")` |
-| **2. B 站（Bilibili）高收藏视频与热评采集** | 自动预热访客 Cookie 后调用 `api.bilibili.com/x/web-interface/search/type` 抓取播放量、收藏量、弹幕数，核心计算 **`收藏/播放比`**（收藏率 > 5% 代表强烈需求）；再调用 `x/v2/reply` 拉取评论区高赞吐槽与求工具评论 | **23 条**<br>（含 Remotion 教程 9954 收藏/11.3% 收藏率、Manim 教程 1.6万收藏等） | **限制**：单 IP 极高频连续翻页会触发 B 站风控验证码；当前限制每词精取前 4 条高相关视频及首屏热评，100% 稳定不封 IP | 打开 `scripts/radar_cli.py`，在 `collect_bilibili()` 的 `queries` 列表加一行 `("分类", "关键词")` |
-| **3. 微信公众号（搜狗微信）实战拆解采集** | 请求 `weixin.sogou.com/weixin?type=2` 检索最新发布的公众号实战复盘文章，提取标题、核心收益/痛点摘要与来源公众号 | **12 条**<br>（含闲鱼虚拟变现拆解、教培 78% 续费率案例、B站 50万播放仅赚 500元实测） | **限制**：免登录仅返回文章摘要与临时链接，因此脚本在抓取时已将核心摘要完整存入本地快照库，点击看板『📄 本地完整快照』即可免登录阅读 | 打开 `scripts/radar_cli.py`，在 `collect_wechat_sogou()` 的 `queries` 列表添加新词 |
-| **4. 蝉妈妈 / 闲鱼 / 小红书导表收件箱 (`inbox/`)** | 针对滑块与设备指纹风控极严的商业平台，采用 **`inbox/*.csv` 投递箱机制**：网页端筛选导出 CSV 放入 `inbox/` 目录，运行脚本即自动去重入库 | **5 条高价值导表信号**<br>（支持无限追加 `.csv` 文件） | **限制**：需市场部同事每周花 5 分钟从网页端导出一次表格放入 `inbox/` | 见下方【二、蝉妈妈/闲鱼怎么导 CSV】 |
-
-### 🔌 程序员同事怎么花 15 行代码新增一个自动采集渠道（如知乎/七麦/V2EX）？
-1. 打开 `scripts/radar_cli.py`，仿照 `collect_wechat_sogou(conn)` 写一个函数 `collect_your_channel(conn)`。
-2. 在函数内拿到数据后，直接调用内置函数 `insert_signal(conn, channel="渠道名", source_tier="实时API抓取", category="分类", query_term="检索词", title="标题", content="痛点正文", author_or_app="来源", metric_primary="主指标", metric_secondary="副指标", rating_or_price="价格或评分", source_url="链接")`。
-3. 在 `main()` 的 `collect` 分支里加上一行你的函数调用即可！
+在线终端（GitHub Pages）：`https://donghyq.github.io/market-radar/`  
+本地入口：克隆仓库后直接打开根目录 `index.html`（单文件自包含，内置全量证据快照，无需外部网络请求或登录）。
 
 ---
 
-## 二、蝉妈妈 / 闲鱼 / 小红书怎么导 CSV 喂给工具？
+## 一、系统架构与工程设计
 
-### 1. 蝉妈妈 3 步导出 CSV 教程
-1. 登录蝉妈妈网页版 → 进入 **【视频榜 / 投流视频库 / 商品榜】**，筛选：**『近 7 天』**、**『粉丝数 < 5 万（专门找低粉爆单的纯工具/虚拟品）』**，关键词搜 `工具 / 模板 / 软件 / 教程 / 定制`。
-2. 点击右上角 **【导出数据 (Excel/CSV)】**。
-3. 对照本仓库 `inbox/chanmama_xianyu_xhs_signals.csv` 的 10 个标准表头字段（`channel, category, query_term, title, content, author_or_app, metric_primary, metric_secondary, rating_or_price, source_url`）粘贴保存为 `.csv` 放入 `inbox/` 文件夹，运行 `python3 scripts/radar_cli.py run-all` 即自动清洗入库。
+本工具专为小型精悍团队设计，用于从中国互联网公开及半公开交易渠道持续采集真实用户痛点，经去噪与五维量化评估后，生成具备商业核算（成本、利润、周期、人数、合规）的立项决策矩阵。
 
-### 2. 闲鱼 / 小红书人工巡检与快速录入
-- **闲鱼看什么**：搜 `代做 / 脚本 / 批量 / 规划表 / 定制`，切到 **【按想要数排序】**，凡是 `想要 > 300人` 且客单价 `9.9~99元` 的人工代做商品，直接录入！
-- **小红书看什么**：搜 `求平替 / 太贵了 / 怎么自动`，找评论区超过 30 人刷 `蹲一个 / 求链接` 的帖子，直接录入！
+### 1.1 整体架构图
+
+```
++-----------------------------------------------------------------------------------+
+|                               1. 多源信号采集层                                   |
+|  - 免登录 API 采集 (scripts/radar_cli.py & scripts/discovery_scanner.py)          |
+|    * Apple 中国区 App Store (iTunes Search + CustomerReviews 1~3星差评 JSON 流)   |
+|    * Bilibili (Web Search + Reply API，计算 Favorites/Play 收藏率与高赞痛点评论)  |
+|    * 微信公众号 (搜狗微信检索解析，提取一线变现复盘与行业实测数据)                |
+|    * V2EX 开发者与需求节点 (Topics API，捕获独立开发与工具求购信号)               |
+|  - 登录态复用 XHR 自动抓包 (scripts/auto_browser_collector.py)                    |
+|    * 基于 Playwright 持久化 Chrome Profile + page.on('response') 内存拦截 JSON    |
+|    * 覆盖：蝉妈妈投流榜 / 闲鱼高想要虚拟商品 / 小红书高赞求链接帖                 |
+|  - 离线 CSV 投递箱 (inbox/*.csv)                                                  |
++-----------------------------------------------------------------------------------+
+                                         |
+                                         v
++-----------------------------------------------------------------------------------+
+|                        2. 数据处理、清洗与无冲突持久化层                          |
+|  - 格式归一化：统一映射为 15 个标准字段 (channel, category, title, content...)    |
+|  - 唯一指纹去重：基于 MD5(channel|title|author) 生成 10 位 uid，增量 UPSERT       |
+|  - 硬规则去噪：正则拦截纯导流软文（如“加微/进群/免费领”）与低信息量短评 (<15字)   |
+|  - 多人零冲突存储 (scripts/collab_utils.py)：                                     |
+|    * Git 仅追踪纯文本按行追加的 data/signals/signals_master.jsonl                 |
+|    * 每个立项方向独立存储为 data/ideas/<CODE>.json，多人并行修改物理零冲突        |
+|    * 本地运行时 0.1 秒派生重建 SQLite (radar.db，已列入 .gitignore)               |
+|    * 每次运行自动生成按日快照 data/archives/YYYY-MM-DD.json，历史数据永久保留     |
++-----------------------------------------------------------------------------------+
+                                         |
+                                         v
++-----------------------------------------------------------------------------------+
+|                       3. 立项评估与主从式投研终端渲染层                           |
+|  - 五维量化评分：付费证据(40) + 获客路径(25) + 交付周期(15) + 竞争缝隙(10) + 测款(10) |
+|  - 复利与成长核算：评估项目是否具备滚雪球壁垒（组件库/行业规则库）与团队技能沉淀  |
+|  - 市场部六维账本：成本预估 / 利润与来源 / 工期 / 人数 / 三阶段路径 / 合规风险    |
+|  - 静态单文件构建 (scripts/export_dashboard.py)：                                 |
+|    * 将 JSON 数据与 scripts/dashboard_app.js 内联编译进 scripts/template.html     |
+|    * 输出根目录 index.html 与 docs/index.html (供 GitHub Pages 自动发布)          |
++-----------------------------------------------------------------------------------+
+```
 
 ---
 
-## 三、团队成员通过自己人脉找到一个新方向，怎么自动录入并跑 AI 锐评评估？
+## 二、目录结构与模块职责
 
-提供 **网页零代码填表** 和 **命令行一键入库** 两种方式，均会自动运行五维 AI 锐评打分（付费意愿 40% + 获客路径 25% + 研发交付 15% + 竞争缝隙 10% + 48h 测款 10%）并生成反方风险提示与 48 小时测款动作：
+```text
+market-radar/
+├── index.html                        # 编译后的单文件投研终端（本地双击即开）
+├── docs/
+│   └── index.html                    # GitHub Pages 线上发布副本
+├── data/
+│   ├── signals/
+│   │   └── signals_master.jsonl      # 全量信号唯一可信源（按行 JSONL，支持 Git 自动合并）
+│   ├── ideas/
+│   │   ├── AUTO-DISC-01.json         # 系统广谱扫描发现的独立立项档案
+│   │   ├── AUTO-DISC-02.json
+│   │   ├── AUTO-DISC-03.json
+│   │   └── TEAM-FE4500.json          # 团队成员通过人脉录入的立项档案
+│   └── archives/
+│       └── 2026-11-18.json           # 每日例行运行生成的历史统计快照
+├── inbox/
+│   └── chanmama_xianyu_xhs_signals.csv # 外部平台 CSV 导表投递目录
+├── exports/
+│   └── signals_full.csv              # 带 UTF-8 BOM 的全量信号导出表（可直接拖入 Excel/飞书）
+├── scripts/
+│   ├── radar_cli.py                  # 主命令行入口（采集、清洗、人脉提报、评估、导出）
+│   ├── discovery_scanner.py          # 跨赛道广谱主动痛点发现脚本（6大付费人群×痛点词矩阵）
+│   ├── auto_browser_collector.py     # Playwright 真机登录态复用 + XHR JSON 自动抓包器
+│   ├── collab_utils.py               # JSONL <-> SQLite 双向同步、历史归档与评分计算工具
+│   ├── export_dashboard.py           # 终端页面编译器（将 JSON 与 JS 内联打包为单文件 HTML）
+│   ├── template.html                 # 投研终端 HTML/CSS 骨架模板（无 Emoji 极简深色风格）
+│   ├── dashboard_app.js              # 投研终端前端主从视图（Master-Detail）交互逻辑
+│   ├── dashboard_config.json         # 核心立项项目与早期既有方向复盘配置
+│   └── whitepaper_config.json        # 渠道原理、导表指南与 4 大战略 Roadmap 配置
+└── .github/workflows/
+    └── daily_radar.yml               # GitHub Actions 每日 08:30 自动增量采集与发布工作流
+```
 
-### 方式 A：直接在看板网页上填表（市场部同事推荐）
-1. 打开看板 `index.html`（或在线链接），点击顶部第 2 个标签页 **【💡 2. 团队人脉/新方向录入与 AI 锐评】**。
-2. 填入方向名称、提报人（如：王总人脉）、具体做什么、卖给谁怎么收费、人脉证据，点击 **『⚡ 立即运行 AI 锐评五维打分并加入首屏立项榜』**。
-3. 页面会立即算出分数并插入首屏立项榜，同时底部会自动生成一行终端同步命令，复制给研发或自己运行即可永久写入 GitHub 仓库。
+---
 
-### 方式 B：一行命令自动评分并写入 `data/ideas/`（永久入库共享）
+## 三、数据处理流水线说明（从采集到立项）
+
+1. **历史基线恢复（`sync_db_from_jsonl`）**  
+   每次执行命令时，先读取 `data/signals/signals_master.jsonl` 重建或合并至本地 `radar.db`，确保多人协作时老数据不丢失。
+2. **多源增量抓取（`collect` / `discovery_scanner.py` / `auto_browser_collector.py`）**  
+   依次拉取 App Store 1~3 星差评、B 站高收藏比视频与热门评论、搜狗微信实战拆解文章、V2EX 需求贴及 `inbox/*.csv`。利用 SQLite `UNIQUE(channel, title, author_or_app)` 约束自动忽略完全重复的数据。
+3. **硬规则去噪与痛点打标（`clean_and_tag_signals`）**  
+   - 长度 `< 15` 字符或命中营销导流正则（`免费领|扣111|加微|私信领|进群交流` 且无实质差评/销量指标）的记录标记 `is_noise = 1`，在终端中默认折叠并标注。
+   - 根据正文与量化指标自动匹配标签：`付费意愿已验证`、`现有方案体验差/求平替`、`国内环境/使用门槛卡点`、`Token/算力成本高`、`B端交付与续费痛点`。
+4. **JSONL 回写与按日快照（`dump_db_to_jsonl`）**  
+   清洗完成后将全量记录写回 `data/signals/signals_master.jsonl`，保留每条信号的首次发现日期 `first_seen` 与最新活跃日期 `last_seen`，同时输出 `data/archives/YYYY-MM-DD.json`。
+5. **立项合并与单文件终端编译（`export_dashboard.py`）**  
+   自动汇总 `scripts/dashboard_config.json` 与 `data/ideas/*.json` 下的所有立项方案，按总分降序排列，内联全部证据快照生成 `index.html` 与 `docs/index.html`。
+
+---
+
+## 四、快速使用指南（日常操作命令）
+
+本工具仅依赖 Python 3 标准库（仅在使用 `auto_browser_collector.py` 浏览器抓包时需本机已安装的 `playwright`），无需配置复杂虚拟环境。
+
+### 4.1 一键日常增量更新（拉取常规渠道 + 清洗 + 重新编译看板）
+```bash
+python3 scripts/radar_cli.py run-all
+```
+
+### 4.2 运行跨赛道广谱主动发现（挖掘未知新方向）
+```bash
+python3 scripts/discovery_scanner.py
+python3 scripts/export_dashboard.py
+```
+
+### 4.3 蝉妈妈 / 闲鱼 / 小红书全自动 XHR 抓包（免手动导 CSV）
+```bash
+# 仅首次运行：弹出 Chrome 扫码登录一次，登录态永久保存在本地 .browser_profile/
+python3 scripts/auto_browser_collector.py --login
+
+# 日常运行：自动打开对应平台并从内存截获后台 JSON 响应包直接入库
+python3 scripts/auto_browser_collector.py --collect \
+  --targets chanmama,xianyu,xhs \
+  --keywords "知识动画代做,标书检查,报价单生成,提词器"
+```
+
+### 4.4 团队成员录入自己人脉发现的新方向（自动评分并生成独立 JSON）
+除了直接在网页端 `03 录入人脉新方向` 填表外，也可在终端执行：
 ```bash
 python3 scripts/radar_cli.py submit-idea \
-  --title "你的新方向名称" \
-  --proposer "你的名字(人脉来源)" \
-  --what "一句话说清客户输入什么、系统产出什么" \
-  --buyer "卖给谁、定价多少（如：199元/月）" \
-  --evidence "人脉验证证据（如：3家熟人客户明确愿付定金）" \
-  --channel "首批客户获客渠道" \
+  --title "新项目方向名称" \
+  --proposer "提报人姓名" \
+  --what "输入什么 -> 系统怎么处理 -> 产出什么" \
+  --buyer "目标客户与收费标准" \
+  --evidence "人脉验证或已付费证据" \
+  --channel "首批客户获客路径" \
   --mvp-days 5
+```
 
-# 同步到 GitHub 与在线看板
+### 4.5 同步最新数据与看板至 GitHub 仓库及线上 Pages
+```bash
 python3 scripts/sync_github.py
 ```
 
 ---
 
-## 四、团队多人协作怎么解决 DB 冲突？GitHub 团队开发收费吗？
+## 五、团队接力开发指南（如何扩展系统）
 
-### 1. GitHub 团队协作 100% 免费（0 元）
-- 在 GitHub 的 `Settings -> Collaborators -> Add people` 中邀请团队所有成员加入 `donghyq/market-radar` 仓库，**不限人数、完全免费**。
-- 公开仓库的 **GitHub Pages 在线看板托管** 与 **GitHub Actions 每日定时采集任务** 也全部免费。
+### 5.1 如何新增一个自动化信息采集渠道？
+1. 打开 `scripts/radar_cli.py` 或 `scripts/discovery_scanner.py`。
+2. 编写采集函数 `collect_your_source(conn)`，请求公开 JSON/RSS/HTML 后调用统一入库函数：
+   ```python
+   insert_signal(
+       conn=conn,
+       channel="渠道名称(如:七麦数据低分高收榜)",
+       source_tier="实时API抓取",
+       category="所属赛道分类",
+       query_term="检索词",
+       title="信号标题",
+       content="完整痛点描述或用户评论原文",
+       author_or_app="应用名或作者",
+       metric_primary="主量化指标(如:月估收入/评论数)",
+       metric_secondary="副指标(如:评分3.2)",
+       rating_or_price="价格或内购属性",
+       source_url="原始链接"
+   )
+   ```
+3. 运行 `python3 scripts/radar_cli.py clean && python3 scripts/export_dashboard.py` 即可在终端中看到新增信号。
 
-### 2. 彻底解决多人开发 `radar.db` 二进制冲突的设计
-- **原因**：SQLite 的 `radar.db` 是二进制文件，两人同时修改会导致 Git 无法自动合并。
-- **本仓库的无冲突架构（JSONL 增量流 + 独立 Idea 文件 + 本地自动重建 DB）**：
-  1. `*.db` 已被加入 `.gitignore`，**Git 不再追踪二进制数据库**；
-  2. 所有采集到的信号以纯文本按行存储在 `data/signals/signals_master.jsonl`（一行一条 JSON，带 `uid` 唯一哈希指纹），多人新增信号时 Git 可直接按行自动 Merge；
-  3. 每个人提报的新项目方向各自生成独立的 JSON 文件存放在 `data/ideas/TEAM-xxxxxx.json`，A 同事和 B 同事同时提报新方向互不碰同一个文件，**100% 零冲突**；
-  4. 任何人拉取代码后运行 `python3 scripts/radar_cli.py run-all`，脚本会在 0.1 秒内从 `signals_master.jsonl` 自动重建本地 `radar.db` 并渲染最新看板。
-
-### 3. 团队模块化分工与 Roadmap
-- **模块 1（渠道采集插件组 `scripts/radar_cli.py`）**：负责维护和新增知乎、七麦、GitHub Trending 等自动采集函数；
-- **模块 2（评估与立项组 `scripts/dashboard_config.json` & `data/ideas/`）**：市场部与产品负责人通过人脉调研、蝉妈妈导表和 `submit-idea` 持续录入并迭代高分立项卡；
-- **模块 3（前端看板与自动化组 `scripts/template.html` & `.github/workflows/`）**：负责看板交互升级与飞书 Webhook 每日早报推送。
-
----
-
-## 五、怎么做例行更新？以前的历史内容怎么保存和兼容？
-
-1. **云端全自动每日例行更新（已配置 `.github/workflows/daily_radar.yml`）**：
-   - 每天北京时间 **08:30**，GitHub Actions 会自动拉起云端环境运行 `python3 scripts/radar_cli.py run-all`，抓取最新差评与高收藏视频并自动推送更新在线看板（也可随时在 GitHub 仓库的 `Actions` 页面点击 `Run workflow` 手动立即触发）。
-2. **历史内容 100% 永久保存与向前兼容**：
-   - **增量去重合并（绝不删老数据）**：每次运行采集时，系统先加载 `data/signals/signals_master.jsonl` 中的全部历史信号，新抓到的信号按 `channel + title + author` 生成唯一 `uid`，已存在的保留首次发现时间 `first_seen` 并更新 `last_seen`，新发现的追加在末尾；
-   - **按日历史快照（`data/archives/YYYY-MM-DD.json`）**：每次例行更新都会在 `data/archives/` 下生成当天的统计快照，方便回溯每周新增趋势。
+### 5.2 如何修改或新增立项深度评估档案？
+- **新增独立项目**：直接在 `data/ideas/` 目录下新建一个 `.json` 文件（参考 `data/ideas/AUTO-DISC-01.json` 结构，包含 `workflow_steps`、`compounding` 复利成长评估、`biz_eval` 六维商业核算表与 `evidence_ids` 关联证据编号数组），然后运行 `python3 scripts/export_dashboard.py`。
+- **调整前端界面**：修改 `scripts/template.html`（样式与布局）或 `scripts/dashboard_app.js`（渲染逻辑），运行 `python3 scripts/export_dashboard.py` 重新编译单文件 `index.html`。
