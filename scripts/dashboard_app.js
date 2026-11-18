@@ -1,8 +1,17 @@
 const SIG_MAP = {};
 (DATA.signals || []).forEach(s => { SIG_MAP[s.id] = s; });
 
+let SELECTED_IDX = 0;
+let EXPAND_ALL = false;
+
+function cleanText(s) {
+  if (!s) return '';
+  // Strip decorative emojis for a clean, institutional terminal look
+  return String(s).replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}]/gu, '').replace(/\s+/g, ' ').trim();
+}
+
 function esc(s) {
-  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return cleanText(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 function getAllProjects() {
@@ -13,188 +22,151 @@ function getAllProjects() {
   return all;
 }
 
+function renderDetailCard(p, idx) {
+  const steps = (p.workflow_steps || []).map((st, i) =>
+    `<div class="step-row"><span class="step-no">0${i+1}</span><div>${esc(st)}</div></div>`
+  ).join('');
+
+  const comp = p.compounding || {
+    tier: "A级复利 · 标准化产品资产",
+    snowball: "初期通过轻量服务验证需求，中期沉淀行业模板与自动化流水线转为订阅制SaaS。",
+    skill_gain: "沉淀领域工作流编排与高转化产品工程能力。"
+  };
+
+  const b = p.biz_eval || {
+    cost: "初期成本 <100元", profit: "毛利率 90%+", time: "MVP 5~7天",
+    team: "1~2人", landing: "48h测款 -> 自动化交付 -> 订阅SaaS", compliance: "遵守平台与数据脱敏规范"
+  };
+
+  const chips = (p.evidence_ids || []).map(eid => {
+    const s = SIG_MAP[eid];
+    if (!s) return '';
+    return `<button class="btn" onclick="openSnap(${eid})">证据 #${eid} · ${esc(s.author_or_app.slice(0,14))} (${esc(s.metric_primary)})</button>`;
+  }).join(' ');
+
+  return `
+    <div class="inspector">
+      <div class="ins-head">
+        <div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <span class="pill pill-s">RANK 0${idx+1} · ${esc(comp.tier)}</span>
+            <span class="pill">${esc(p.category_tag)}</span>
+          </div>
+          <h2 class="ins-title">${esc(p.title)}</h2>
+        </div>
+        <div class="ins-score-box">
+          <div class="ins-score-big">${p.score}<span style="font-size:13px;color:var(--text-muted);font-weight:400;"> / 100</span></div>
+          <div class="ins-score-sub">${esc(p.score_detail)}</div>
+        </div>
+      </div>
+
+      <span class="sec-label">01 / 产品定位与一句话定义</span>
+      <div class="summary-lead">${esc(p.plain_what_to_do)}</div>
+
+      <div class="grid-2">
+        <div class="card-cell">
+          <span class="cell-k">运转流程（输入 → 处理 → 产出）</span>
+          <div class="cell-v">${steps}</div>
+        </div>
+        <div class="card-cell">
+          <span class="cell-k">目标客群、定价策略与 AI 锐评依据</span>
+          <div class="cell-v" style="margin-bottom:10px;"><strong style="color:var(--text);">定价与客群：</strong>${esc(p.who_pays_and_price)}</div>
+          <div class="cell-v"><strong style="color:var(--text);">AI 锐评依据：</strong>${esc(p.ai_sharp_review)}</div>
+        </div>
+      </div>
+
+      <span class="sec-label">02 / 复利滚雪球路径与团队能力沉淀（拒绝纯苦力外包）</span>
+      <div class="grid-2">
+        <div class="card-cell" style="border-left:2px solid var(--accent);">
+          <span class="cell-k" style="color:var(--text);">长期复利与护城河（为什么能滚雪球）</span>
+          <div class="cell-v">${esc(comp.snowball)}</div>
+        </div>
+        <div class="card-cell" style="border-left:2px solid var(--pos);">
+          <span class="cell-k" style="color:var(--text);">对团队成员的技术与业务成长价值</span>
+          <div class="cell-v">${esc(comp.skill_gain)}</div>
+        </div>
+      </div>
+
+      <span class="sec-label">03 / 市场部立项六维商业与合规核算表</span>
+      <div class="grid-3">
+        <div class="card-cell"><span class="cell-k">1. 初步资金成本预估</span><div class="cell-v">${esc(b.cost)}</div></div>
+        <div class="card-cell"><span class="cell-k">2. 利润预估与多元收入来源</span><div class="cell-v">${esc(b.profit)}</div></div>
+        <div class="card-cell"><span class="cell-k">3. 时间成本（研发与回本周期）</span><div class="cell-v">${esc(b.time)}</div></div>
+        <div class="card-cell"><span class="cell-k">4. 需要人数与角色配置</span><div class="cell-v">${esc(b.team)}</div></div>
+        <div class="card-cell"><span class="cell-k">5. 三阶段落地推进路径</span><div class="cell-v">${esc(b.landing)}</div></div>
+        <div class="card-cell"><span class="cell-k">6. 国内法律与平台合规边界</span><div class="cell-v">${esc(b.compliance)}</div></div>
+      </div>
+
+      <span class="sec-label">04 / 48 小时低成本测款探针与关联一手证据快照</span>
+      <div class="card-cell" style="margin-bottom:12px;">
+        <span class="cell-k" style="color:var(--text);">明日可执行 48 小时测款动作（仅作需求验证探针，验证通过后转自动化产品）</span>
+        <div class="cell-v">${esc(p.plan_48h)}</div>
+      </div>
+      ${chips ? `<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;"><span style="font-size:12px;color:var(--text-muted);">点击查看本地免登录证据快照：</span>${chips}</div>` : ''}
+    </div>
+  `;
+}
+
 function renderProjects() {
   const list = getAllProjects();
   document.getElementById('kpiProjects').innerText = list.length;
-  const html = list.map((p, idx) => {
-    const steps = (p.workflow_steps || []).map((st, i) =>
-      `<div class="step-item"><span class="step-idx">${i+1}</span><div>${esc(st)}</div></div>`
-    ).join('');
-    const chips = (p.evidence_ids || []).map(eid => {
-      const s = SIG_MAP[eid];
-      if (!s) return '';
-      return `<button class="chip-btn" onclick="openSnap(${eid})">📄 证据 #${eid} · ${esc(s.author_or_app.slice(0,12))} (${esc(s.metric_primary)})</button>`;
-    }).join('');
+  if (SELECTED_IDX >= list.length) SELECTED_IDX = 0;
+
+  const rows = list.map((p, i) => {
+    const compTier = (p.compounding && p.compounding.tier) ? p.compounding.tier : 'A级复利';
+    const b = p.biz_eval || {};
+    const isSel = (!EXPAND_ALL && i === SELECTED_IDX) ? 'selected' : '';
     return `
-      <div class="p-card">
-        <div class="p-top">
-          <div>
-            <span class="tag-pill">NO.${idx+1} · ${esc(p.category_tag)}</span>
-            <h2 class="p-title">${esc(p.title)}</h2>
-          </div>
-          <div class="score-panel">
-            <div class="score-num">${p.score} <small>/ 100分 (AI 锐评)</small></div>
-            <div class="score-detail">${esc(p.score_detail)}</div>
-          </div>
-        </div>
-        <div class="what-banner"><b>💡 一句话听懂到底做什么产品：</b>${esc(p.plain_what_to_do)}</div>
-        <div class="cols-2">
-          <div class="panel">
-            <span class="panel-title">🛠️ 具体怎么做（输入 → 处理 → 产出三步走）</span>
-            ${steps}
-          </div>
-          <div class="panel">
-            <span class="panel-title green">💰 卖给谁？收多少钱？</span>
-            <div style="margin-bottom:10px;">${esc(p.who_pays_and_price)}</div>
-            <span class="panel-title">🤖 AI 锐评（数据依据与避坑指南）</span>
-            <div>${esc(p.ai_sharp_review)}</div>
-          </div>
-        </div>
-        ${p.biz_eval ? `
-        <div class="panel" style="margin-bottom:14px;background:rgba(15,23,42,0.82);border-color:rgba(56,189,248,0.28);">
-          <span class="panel-title" style="color:var(--blue);font-size:14px;margin-bottom:10px;">📊 市场部立项六维评估账本（成本 / 利润与来源 / 时间 / 人数 / 落地方向 / 合规风险）</span>
-          <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:10px;font-size:12.8px;">
-            <div style="background:#090d16;padding:10px 12px;border-radius:8px;border:1px solid var(--border);"><b style="color:var(--amber);display:block;margin-bottom:3px;">💸 1. 初步成本预估</b>${esc(p.biz_eval.cost)}</div>
-            <div style="background:#090d16;padding:10px 12px;border-radius:8px;border:1px solid var(--border);"><b style="color:var(--green);display:block;margin-bottom:3px;">📈 2. 利润预估与收入来源</b>${esc(p.biz_eval.profit)}</div>
-            <div style="background:#090d16;padding:10px 12px;border-radius:8px;border:1px solid var(--border);"><b style="color:var(--blue);display:block;margin-bottom:3px;">⏱️ 3. 时间成本（研发+回本）</b>${esc(p.biz_eval.time)}</div>
-            <div style="background:#090d16;padding:10px 12px;border-radius:8px;border:1px solid var(--border);"><b style="color:var(--indigo);display:block;margin-bottom:3px;">👥 4. 需要人数与分工</b>${esc(p.biz_eval.team)}</div>
-            <div style="background:#090d16;padding:10px 12px;border-radius:8px;border:1px solid var(--border);"><b style="color:#f472b6;display:block;margin-bottom:3px;">🧭 5. 大致落地方向（三步走）</b>${esc(p.biz_eval.landing)}</div>
-            <div style="background:#090d16;padding:10px 12px;border-radius:8px;border:1px solid var(--border);"><b style="color:var(--red);display:block;margin-bottom:3px;">⚖️ 6. 国内合规风险与规避</b>${esc(p.biz_eval.compliance)}</div>
-          </div>
-        </div>` : ""}
-        <div class="act-bar"><b>⚡ 48 小时低成本测款动作（明日即可执行）：</b>${esc(p.plan_48h)}</div>
-        ${chips ? `<div class="ev-chips"><span>📌 点击免登录查看本方案关联的真实数据快照：</span>${chips}</div>` : ''}
-      </div>
+      <tr class="row-item ${isSel}" onclick="selectProject(${i})">
+        <td width="55" style="font-family:monospace;color:var(--text-muted);">0${i+1}</td>
+        <td><strong style="color:var(--text);font-weight:500;">${esc(p.title)}</strong></td>
+        <td width="175"><span class="pill ${compTier.startsWith('S') ? 'pill-s' : ''}">${esc(compTier)}</span></td>
+        <td width="160" style="color:var(--text-secondary);">${esc(p.category_tag.split('·')[0])}</td>
+        <td width="145" style="color:var(--text-secondary);">${esc((b.team || '1~2人').split('（')[0])} / ${esc((b.time || '5天').split('；')[0])}</td>
+        <td width="85"><span class="num-score">${p.score}</span> <small style="color:var(--text-muted)">/100</small></td>
+        <td width="90"><button class="btn" onclick="event.stopPropagation();selectProject(${i})">查看档案</button></td>
+      </tr>
     `;
   }).join('');
-  document.getElementById('tab-projects').innerHTML = html;
-}
 
-function renderSubmitTab() {
-  document.getElementById('tab-submit').innerHTML = `
-    <div class="p-card">
-      <span class="tag-pill">🤝 团队人脉 / 内部新商机自动评估通道</span>
-      <h2 class="p-title" style="margin-bottom:8px;">有同事通过自己的人脉找到了新方向？直接填表自动跑 AI 锐评并加入看板</h2>
-      <p style="color:var(--sub);font-size:13.5px;margin-top:0;">填完下方 6 项后点击按钮，系统会自动按五维漏斗（付费证据40% + 获客路径25% + 交付周期15% + 竞争缝隙10% + 48h测款10%）算出分数、生成 AI 锐评风险诊断，并立即插入首屏【赚钱项目立项榜】，同时生成可提交到 GitHub 共享给全员的命令与 JSON 文件。</p>
-      <div class="form-grid" style="margin-top:16px;">
-        <div class="field"><label>1. 新项目方向名称 *</label><input id="fTitle" placeholder="例如：跨境独立站 TikTok 达人寄样自动催片脚本"></div>
-        <div class="field"><label>2. 提报人 / 人脉来源 *</label><input id="fProposer" placeholder="例如：王总（深圳跨境卖家圈人脉）"></div>
-        <div class="field" style="grid-column:span 2;"><label>3. 大白话说明具体做个什么产品（客户输入什么 → 自动产出什么）*</label><input id="fWhat" placeholder="例如：输入达人寄样单号与WhatsApp号，物流签收满3天自动发多语种语音+文案催达人交挂车视频的小工具"></div>
-        <div class="field"><label>4. 卖给谁？准备怎么收费？*</label><input id="fBuyer" placeholder="例如：日寄样20+单的TK中小卖家，收 199元/月 或 999元/年"></div>
-        <div class="field"><label>5. 首批 50 个客户去哪找（获客渠道）*</label><input id="fChannel" placeholder="例如：提报人手头的 3 个深圳卖家微信群 + 小红书TK寄样痛点帖截流"></div>
-        <div class="field"><label>6. 人脉验证证据（对方现在怎么解决？有多痛？）*</label><input id="fEvidence" placeholder="例如：人脉认识的 3 家坂田卖家每月被白嫖样品亏上万，明确表示做出来立刻买"></div>
-        <div class="field">
-          <label>7. 研发周期与付费确定性</label>
-          <div style="display:flex;gap:10px;">
-            <select id="fDays"><option value="5">预计 3~7 天内可出 MVP (+14分)</option><option value="12">预计 1~2 周出 MVP (+11分)</option><option value="25">需 2 周以上重度开发 (+7分)</option></select>
-            <select id="fPaid"><option value="1">客户已明确愿付定金/已在花钱找人工 (+36分)</option><option value="0">仅口头说不错，尚未谈钱 (+24分)</option></select>
-          </div>
-        </div>
-      </div>
-      <div style="margin-top:18px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
-        <button class="btn-primary" onclick="submitNewIdea()">⚡ 立即运行 AI 锐评五维打分并加入首屏立项榜</button>
-        <span id="submitMsg" style="color:var(--green);font-size:13.5px;font-weight:600;"></span>
-      </div>
-      <div id="cliBox" style="display:none;margin-top:16px;" class="panel">
-        <span class="panel-title green">✅ 已加入当前看板！如需永久写入 GitHub 仓库共享给全团队，在终端复制运行下方命令（自动生成独立无冲突 JSON）：</span>
-        <code id="cliCmd" style="display:block;padding:10px;white-space:pre-wrap;word-break:break-all;"></code>
-      </div>
+  const detailHtml = EXPAND_ALL
+    ? list.map((p, i) => renderDetailCard(p, i)).join('')
+    : renderDetailCard(list[SELECTED_IDX], SELECTED_IDX);
+
+  document.getElementById('tab-projects').innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <span class="sec-label" style="margin:0;">候选立项总览矩阵（点击任意行在下方切换查看该项目的完整深度评估档案）</span>
+      <button class="btn" onclick="toggleExpandAll()">${EXPAND_ALL ? '切换为单项目聚焦模式' : '展开全部 9 个项目完整档案'}</button>
     </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>排名</th>
+            <th>项目方向名称</th>
+            <th>复利与成长评级</th>
+            <th>来源通道</th>
+            <th>人数与研发周期</th>
+            <th>AI 锐评总分</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    <div id="inspectorAnchor">${detailHtml}</div>
   `;
 }
 
-function submitNewIdea() {
-  const title = document.getElementById('fTitle').value.trim();
-  const proposer = document.getElementById('fProposer').value.trim() || '团队成员';
-  const what = document.getElementById('fWhat').value.trim();
-  const buyer = document.getElementById('fBuyer').value.trim() || '待定（建议99~299元测款）';
-  const channel = document.getElementById('fChannel').value.trim() || '人脉私域+小红书/闲鱼';
-  const evidence = document.getElementById('fEvidence').value.trim() || '内部人脉一线痛点反馈';
-  const days = parseInt(document.getElementById('fDays').value, 10);
-  const paid = document.getElementById('fPaid').value === '1';
-  if (!title || !what) { alert('请至少填写【方向名称】和【具体做什么产品】！'); return; }
-
-  const sPay = paid ? 36 : 24;
-  const sAcq = /(群|人脉|老客|小红书|闲鱼|评论)/.test(channel) ? 22 : 16;
-  const sDel = days <= 7 ? 14 : (days <= 14 ? 11 : 7);
-  const sComp = 8;
-  const sVal = paid ? 9 : 6;
-  const total = sPay + sAcq + sDel + sComp + sVal;
-
-  const risks = [];
-  if (!paid) risks.push('当前仅有人脉口头意向，尚未见真金白银，务必先收定金防伪需求。');
-  if (days > 10) risks.push('研发周期超10天，切忌闭门造车，前3单必须用脚本+人工半自动交付。');
-  if (/(B端|机构|企业)/.test(buyer)) risks.push('面向B端客户极易陷入定制化与拖欠尾款泥潭，必须坚持标准年卡/预付费。');
-  if (!risks.length) risks.push('人脉痛点扎实且研发极轻，下一步重点验证能否从熟人关系复制到公域陌生买家。');
-
-  const newObj = {
-    code: 'TEAM-' + Date.now().toString().slice(-4),
-    category_tag: `🤝 团队人脉提报 · 提报人：${proposer}`,
-    title: `【人脉新方向】${title}`,
-    score: total,
-    score_detail: `付费意愿 ${sPay}/40 · 获客截流 ${sAcq}/25 · 研发交付 ${sDel}/15 · 竞争缝隙 ${sComp}/10 · 48h测款 ${sVal}/10`,
-    plain_what_to_do: what,
-    workflow_steps: [
-      `【人脉一手痛点】${evidence}`,
-      `【最小MVP处理】控制在 ${days} 天内用现有脚本/模板搭出半自动流水线交付核心结果`,
-      `【商业变现闭环】通过 ${channel} 触达首批客户，按『${buyer}』先收款后交付`
-    ],
-    who_pays_and_price: buyer,
-    ai_sharp_review: '【AI 锐评自动诊断】' + risks.join(' '),
-    plan_48h: `由 ${proposer} 在 48 小时内向该人脉客户发去一份手工/半自动跑出的样品 Demo，要求对方先预付 99~299 元测试定金，收到钱当天启动开发。`,
-    evidence_ids: [],
-    biz_eval: {
-      cost: "初期测试算力与服务器成本 <100元（基于 DeepSeek-V4.1-Flash 极低单价）",
-      profit: `按『${buyer}』测算，毛利率 90%+，首月目标成交 30~50 单验证现金流`,
-      time: `MVP 预计 ${days} 天完成，48 小时内向人脉客户收定金测款`,
-      team: "1~2 人（1 名研发快速搭建原型 + 提报人对接人脉渠道）",
-      landing: "第1周：人工+脚本半自动向熟人客户交付首单；第2~3周：标准化为自助工具扩客",
-      compliance: "注意数据隐私脱敏与平台交易规则，优先以技术服务或本地桌面工具形态交付"
-    }
-  };
-
-  let local = [];
-  try { local = JSON.parse(localStorage.getItem('mr_custom_ideas') || '[]'); } catch(e) {}
-  local.unshift(newObj);
-  localStorage.setItem('mr_custom_ideas', JSON.stringify(local));
+function selectProject(idx) {
+  SELECTED_IDX = idx;
+  EXPAND_ALL = false;
   renderProjects();
-
-  document.getElementById('submitMsg').innerText = `🎉 评估完成！AI 锐评得分：${total}/100 分，已插入【1. 赚钱项目立项榜】！`;
-  document.getElementById('cliBox').style.display = 'block';
-  document.getElementById('cliCmd').innerText =
-    `python3 scripts/radar_cli.py submit-idea --title "${title}" --proposer "${proposer}" --what "${what}" --buyer "${buyer}" --evidence "${evidence}" --channel "${channel}" --mvp-days ${days}` + (paid ? '' : ' --unpaid') + ` && python3 scripts/sync_github.py`;
 }
 
-function renderWhitepaper() {
-  const wp = DATA.whitepaper || {};
-  const chHtml = (wp.channels || []).map(c => `
-    <div class="panel" style="margin-bottom:12px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-        <b style="color:var(--blue);font-size:15px;">${esc(c.name)}</b>
-        <span class="tag-pill">${esc(c.type)}</span>
-      </div>
-      <div style="color:var(--green);font-size:12.5px;margin-bottom:6px;">📊 <b>抓取战果：</b>${esc(c.count_info)}</div>
-      <div style="margin-bottom:6px;">🔍 <b>怎么抓的（透明原理）：</b>${esc(c.how_it_works)}</div>
-      <div style="color:var(--amber);margin-bottom:6px;">⚠️ <b>已知问题与边界：</b>${esc(c.limitations)}</div>
-      <div style="color:var(--sub);">🛠️ <b>怎么扩充关键词/新分类：</b><code>${esc(c.how_to_extend)}</code></div>
-    </div>
-  `).join('');
-
-  const guideHtml = (wp.csv_guides || []).map(g => `
-    <div class="panel" style="margin-bottom:12px;">
-      <span class="panel-title green" style="font-size:15px;">${esc(g.platform)}</span>
-      ${(g.steps || []).map(st => `<div style="margin-bottom:6px;">${esc(st)}</div>`).join('')}
-    </div>
-  `).join('');
-
-  document.getElementById('tab-whitepaper').innerHTML = `
-    <div class="p-card">
-      <h2 class="p-title" style="margin-top:0;margin-bottom:14px;">📡 一、当前 4 大采集渠道透明白皮书（怎么抓的、抓了多少、有什么问题）</h2>
-      ${chHtml}
-      <h2 class="p-title" style="margin-top:24px;margin-bottom:14px;">📥 二、蝉妈妈 / 闲鱼怎么导 CSV？程序员怎么花 15 行代码加新渠道？</h2>
-      ${guideHtml}
-    </div>
-  `;
+function toggleExpandAll() {
+  EXPAND_ALL = !EXPAND_ALL;
+  renderProjects();
 }
 
 function renderSignals() {
@@ -205,65 +177,178 @@ function renderSignals() {
     const needLogin = /(goofish|chanmama|xiaohongshu)/.test(s.source_url || '');
     return `
       <tr class="sig-row" data-ch="${esc(s.channel)}" data-q="${esc(s.title + ' ' + s.content + ' ' + s.author_or_app)}">
-        <td><b>#${s.id}</b><br><small style="color:var(--sub)">${esc((s.collected_at||'').slice(0,10))}</small></td>
-        <td><span class="tag-pill" style="font-size:11px;">${esc(s.channel)}</span><br><small style="color:var(--sub)">${esc(s.category)}</small></td>
-        <td><b>${esc(s.author_or_app)}</b><br><small style="color:var(--amber)">${esc(s.rating_or_price)}</small></td>
-        <td>${s.is_noise ? '<span style="background:#7f1d1d;color:#fecaca;padding:2px 6px;border-radius:4px;font-size:11px;">已拦截噪音</span> ' : ''}<b>${esc(s.title)}</b><br><span style="color:#cbd5e1">${esc(s.content)}</span></td>
-        <td><b style="color:var(--green)">${esc(s.metric_primary)}</b><br><small style="color:var(--sub)">${esc(s.metric_secondary)}</small></td>
+        <td style="font-family:monospace;color:var(--text-muted);">#${s.id}<br><small>${esc((s.collected_at||'').slice(0,10))}</small></td>
+        <td><span class="pill">${esc(s.channel)}</span><br><small style="color:var(--text-muted)">${esc(s.category)}</small></td>
+        <td><strong style="color:var(--text);font-weight:500;">${esc(s.author_or_app)}</strong><br><small style="color:var(--text-muted)">${esc(s.rating_or_price)}</small></td>
+        <td>${s.is_noise ? '<span class="pill" style="color:#f87171;">已过滤噪音</span> ' : ''}<strong style="color:var(--text);font-weight:500;">${esc(s.title)}</strong><br><span style="color:var(--text-secondary)">${esc(s.content)}</span></td>
+        <td style="color:var(--text-secondary);">${esc(s.metric_primary)}<br><small style="color:var(--text-muted)">${esc(s.metric_secondary)}</small></td>
         <td>
-          <button class="chip-btn" onclick="openSnap(${s.id})">📄 本地完整快照</button><br>
-          <a href="${esc(s.source_url)}" target="_blank" style="font-size:11.5px;color:var(--sub);display:inline-block;margin-top:6px;">${needLogin ? '外部站(需登录)↗' : '直达原网页↗'}</a>
+          <button class="btn" onclick="openSnap(${s.id})">本地快照</button><br>
+          <a href="${esc(s.source_url)}" target="_blank" style="font-size:11.5px;color:var(--text-muted);display:inline-block;margin-top:6px;text-decoration:none;">${needLogin ? '原站(需登录)↗' : '原网页↗'}</a>
         </td>
       </tr>
     `;
   }).join('');
 
   document.getElementById('tab-signals').innerHTML = `
-    <div style="display:flex;gap:12px;margin-bottom:14px;flex-wrap:wrap;">
-      <input id="qInput" placeholder="输入关键词过滤（如：Remotion、差评、扣费、教培、闲鱼、提词器）..." style="width:380px;background:var(--card);color:var(--text);border:1px solid var(--border);padding:9px 12px;border-radius:8px;" oninput="filterRows()">
-      <select id="chSelect" onchange="filterRows()" style="background:var(--card);color:var(--text);border:1px solid var(--border);padding:9px 12px;border-radius:8px;">
-        <option value="">全部采集渠道 (${sigs.length}条)</option>
-        <option value="AppStore">AppStore中国区差评 (21条)</option>
-        <option value="B站">B站视频与热评 (23条)</option>
-        <option value="微信">微信公众号拆解 (12条)</option>
-        <option value="导表">蝉妈妈/闲鱼/小红书导表 (5条)</option>
+    <div style="display:flex;gap:12px;margin-bottom:14px;">
+      <input id="qInput" placeholder="搜索关键词（如：Remotion、标书、报价单、差评、扣费、教培、闲鱼）..." style="max-width:420px;" oninput="filterRows()">
+      <select id="chSelect" onchange="filterRows()" style="max-width:240px;">
+        <option value="">全部渠道 (${sigs.length}条)</option>
+        <option value="AppStore">AppStore中国区差评</option>
+        <option value="B站">B站高收藏视频与热评</option>
+        <option value="微信">微信公众号实战拆解</option>
+        <option value="V2EX">V2EX开发者社区</option>
+        <option value="导表">蝉妈妈/闲鱼/小红书</option>
       </select>
     </div>
-    <table>
-      <thead><tr><th width="65">编号/日期</th><th width="170">渠道/分类</th><th width="165">对象/来源</th><th>完整标题与痛点内容（已存本地库）</th><th width="165">核心量化指标</th><th width="130">免登录查看</th></tr></thead>
-      <tbody>${rows}</tbody>
-    </table>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th width="75">编号</th><th width="175">渠道与分类</th><th width="165">来源对象</th><th>标题与本地保存的正文摘要</th><th width="160">量化指标</th><th width="105">操作</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  `;
+}
+
+function renderSubmitTab() {
+  document.getElementById('tab-submit').innerHTML = `
+    <div class="inspector">
+      <div class="ins-head">
+        <div>
+          <span class="sec-label">内部人脉与新商机提报通道</span>
+          <h2 class="ins-title">录入新市场方向并自动执行五维 AI 锐评与六维商业核算</h2>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div><label class="field-lbl">1. 新项目方向名称 *</label><input id="fTitle" placeholder="例如：跨境独立站 TikTok 达人寄样自动催片工具"></div>
+        <div><label class="field-lbl">2. 提报人 / 人脉来源 *</label><input id="fProposer" placeholder="例如：王总（深圳跨境卖家圈人脉）"></div>
+        <div style="grid-column:span 2;"><label class="field-lbl">3. 产品一句话定义（输入什么 → 处理什么 → 产出什么）*</label><input id="fWhat" placeholder="例如：输入达人寄样单号，签收满3天自动发多语种消息催达人交挂车视频"></div>
+        <div><label class="field-lbl">4. 目标客户与收费模式 *</label><input id="fBuyer" placeholder="例如：日寄样20+单的TK中小卖家，199元/月"></div>
+        <div><label class="field-lbl">5. 首批客户获客渠道 *</label><input id="fChannel" placeholder="例如：深圳卖家微信群 + 小红书评论区截流"></div>
+        <div><label class="field-lbl">6. 真实痛点与付费证据 *</label><input id="fEvidence" placeholder="例如：3家熟人卖家每月被白嫖样品亏上万，愿预付定金"></div>
+        <div style="display:flex;gap:10px;">
+          <div style="flex:1;"><label class="field-lbl">预计 MVP 工期</label><select id="fDays"><option value="5">3~7 天内</option><option value="12">1~2 周</option><option value="25">2 周以上</option></select></div>
+          <div style="flex:1;"><label class="field-lbl">付费确定性</label><select id="fPaid"><option value="1">已确认愿付定金/已在付费</option><option value="0">仅口头意向</option></select></div>
+        </div>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;">
+        <button class="btn btn-primary" onclick="submitNewIdea()">计算评分并加入立项矩阵</button>
+        <span id="submitMsg" style="color:var(--pos);font-size:13px;"></span>
+      </div>
+      <div id="cliBox" style="display:none;margin-top:16px;" class="card-cell">
+        <span class="cell-k">永久同步至团队 GitHub 仓库的终端命令：</span>
+        <code id="cliCmd" style="display:block;padding:10px;white-space:pre-wrap;word-break:break-all;"></code>
+      </div>
+    </div>
+  `;
+}
+
+function submitNewIdea() {
+  const title = document.getElementById('fTitle').value.trim();
+  const proposer = document.getElementById('fProposer').value.trim() || '团队成员';
+  const what = document.getElementById('fWhat').value.trim();
+  const buyer = document.getElementById('fBuyer').value.trim() || '待定定价';
+  const channel = document.getElementById('fChannel').value.trim() || '人脉私域';
+  const evidence = document.getElementById('fEvidence').value.trim() || '人脉一线反馈';
+  const days = parseInt(document.getElementById('fDays').value, 10);
+  const paid = document.getElementById('fPaid').value === '1';
+  if (!title || !what) { alert('请填写方向名称与产品定义'); return; }
+
+  const sPay = paid ? 36 : 24;
+  const sAcq = /(群|人脉|老客|小红书|闲鱼|评论)/.test(channel) ? 22 : 16;
+  const sDel = days <= 7 ? 14 : (days <= 14 ? 11 : 7);
+  const sComp = 8;
+  const sVal = paid ? 9 : 6;
+  const total = sPay + sAcq + sDel + sComp + sVal;
+
+  const newObj = {
+    code: 'TEAM-' + Date.now().toString().slice(-4),
+    category_tag: `团队人脉提报 · ${proposer}`,
+    title: `【人脉提报】${title}`,
+    score: total,
+    score_detail: `付费意愿 ${sPay}/40 · 获客截流 ${sAcq}/25 · 研发交付 ${sDel}/15 · 竞争缝隙 ${sComp}/10 · 48h测款 ${sVal}/10`,
+    plain_what_to_do: what,
+    workflow_steps: [`输入与痛点：${evidence}`, `处理逻辑：${days}天内基于现有脚本搭建最小闭环`, `交付变现：通过 ${channel} 按 ${buyer} 收款`],
+    who_pays_and_price: buyer,
+    ai_sharp_review: paid ? '人脉痛点明确且有付费意愿，重点验证能否从单点熟人复制至公域标准品。' : '当前仅口头意向，必须先收定金验证真伪。',
+    plan_48h: `48小时内由 ${proposer} 向客户发去半自动样品 Demo 并收取 99~299 元测试定金。`,
+    compounding: { tier: "A级复利 · 垂直SaaS沉淀", snowball: "从熟人定制切入，提炼通用行业规则后转为按月订阅制工具。", skill_gain: "沉淀垂直行业工作流与自动化交付能力。" },
+    biz_eval: { cost: "初期成本 <100元", profit: `按 ${buyer} 测算，毛利率 90%+`, time: `MVP ${days} 天`, team: "1.5人", landing: "熟人首单验证 -> 半自动脚本 -> 标准化SaaS", compliance: "注意数据脱敏与平台合规" },
+    evidence_ids: []
+  };
+
+  let local = [];
+  try { local = JSON.parse(localStorage.getItem('mr_custom_ideas') || '[]'); } catch(e) {}
+  local.unshift(newObj);
+  localStorage.setItem('mr_custom_ideas', JSON.stringify(local));
+  SELECTED_IDX = 0;
+  renderProjects();
+  document.getElementById('submitMsg').innerText = `已生成评估档案（得分 ${total}/100），已置顶加入 01 立项评估矩阵。`;
+  document.getElementById('cliBox').style.display = 'block';
+  document.getElementById('cliCmd').innerText =
+    `python3 scripts/radar_cli.py submit-idea --title "${title}" --proposer "${proposer}" --what "${what}" --buyer "${buyer}" --evidence "${evidence}" --channel "${channel}" --mvp-days ${days}` + (paid ? '' : ' --unpaid') + ` && python3 scripts/sync_github.py`;
+}
+
+function renderWhitepaper() {
+  const wp = DATA.whitepaper || {};
+  const chHtml = (wp.channels || []).map(c => `
+    <div class="card-cell" style="margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+        <strong style="color:var(--text);">${esc(c.name)}</strong>
+        <span class="pill">${esc(c.type)}</span>
+      </div>
+      <div class="cell-v" style="margin-bottom:4px;"><strong style="color:var(--text-secondary);">采集量：</strong>${esc(c.count_info)}</div>
+      <div class="cell-v" style="margin-bottom:4px;"><strong style="color:var(--text-secondary);">实现机制：</strong>${esc(c.how_it_works)}</div>
+      <div class="cell-v" style="margin-bottom:4px;"><strong style="color:var(--text-secondary);">边界限制：</strong>${esc(c.limitations)}</div>
+      <div class="cell-v"><strong style="color:var(--text-secondary);">扩展方式：</strong><code>${esc(c.how_to_extend)}</code></div>
+    </div>
+  `).join('');
+
+  const guideHtml = (wp.csv_guides || []).map(g => `
+    <div class="card-cell" style="margin-bottom:12px;">
+      <span class="cell-k" style="color:var(--text);">${esc(g.platform)}</span>
+      ${(g.steps || []).map(st => `<div class="cell-v" style="margin-bottom:4px;">${esc(st)}</div>`).join('')}
+    </div>
+  `).join('');
+
+  document.getElementById('tab-whitepaper').innerHTML = `
+    <div class="inspector">
+      <span class="sec-label">数据采集透明说明</span>
+      ${chHtml}
+      <span class="sec-label" style="margin-top:24px;">外部平台自动化抓包与导表操作指南</span>
+      ${guideHtml}
+    </div>
   `;
 }
 
 function renderRoadmapAndArchive() {
   const wp = DATA.whitepaper || {};
   const rmHtml = (wp.roadmap || []).map(r => `
-    <div class="panel" style="margin-bottom:12px;">
-      <div style="display:flex;justify-content:space-between;"><b style="color:var(--green)">${esc(r.phase)} · ${esc(r.title)}</b><span style="color:var(--blue);font-size:12px;">分工：${esc(r.owner)}</span></div>
-      <div style="margin-top:6px;white-space:pre-line;color:#cbd5e1;">${esc(r.details)}</div>
+    <div class="card-cell" style="margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+        <strong style="color:var(--text);">${esc(r.phase)} — ${esc(r.title)}</strong>
+        <span class="pill">${esc(r.owner)}</span>
+      </div>
+      <div class="cell-v" style="white-space:pre-line;">${esc(r.details)}</div>
     </div>
   `).join('');
 
   const oldHtml = (DATA.existing_ideas || []).map(o => `
-    <div class="panel" style="margin-bottom:12px;">
-      <b style="color:var(--blue);font-size:15px;">${esc(o.name)}</b>
-      <div style="margin-top:6px;">🎯 <b>原设想：</b>${esc(o.original_plan)}</div>
-      <div style="color:var(--red);margin-top:4px;">🛑 <b>当时卡点：</b>${esc(o.blocker)}</div>
-      <div style="color:var(--amber);margin-top:4px;">🤖 <b>AI 锐评：</b>${esc(o.ai_review)}</div>
-      <div style="color:var(--green);margin-top:4px;">🚀 <b>改造去向：</b>${esc(o.pivot_to)}</div>
+    <div class="card-cell" style="margin-bottom:12px;">
+      <strong style="color:var(--text);display:block;margin-bottom:6px;">${esc(o.name)}</strong>
+      <div class="cell-v" style="margin-bottom:4px;"><strong>原设想：</strong>${esc(o.original_plan)}</div>
+      <div class="cell-v" style="margin-bottom:4px;"><strong>受阻原因：</strong>${esc(o.blocker)}</div>
+      <div class="cell-v" style="margin-bottom:4px;"><strong>AI 锐评：</strong>${esc(o.ai_review)}</div>
+      <div class="cell-v"><strong>改造方向：</strong>${esc(o.pivot_to)}</div>
     </div>
   `).join('');
 
   document.getElementById('tab-roadmap').innerHTML = `
-    <div class="p-card">
-      <h2 class="p-title" style="margin-top:0;margin-bottom:12px;">🗺️ 一、多人无冲突协作架构与迭代 Roadmap（GitHub 团队协作 100% 免费）</h2>
-      <div class="what-banner">
-        <b>💡 为什么现在多人同时开发不会再发生数据库冲突？</b><br>
-        我们已将二进制的 <code>radar.db</code> 加入 <code>.gitignore</code>，Git 仓库只追踪纯文本的 <code>data/signals/signals_master.jsonl</code>（按行追加，Git 自动合并）和 <code>data/ideas/*.json</code>（每人提报的方向各自独立成一个 JSON 文件，零冲突）以及 <code>data/archives/YYYY-MM-DD.json</code>（按日历史归档，老数据永久保留）。
-      </div>
+    <div class="inspector">
+      <span class="sec-label">系统演进 Roadmap（广谱发现 / 可信度分级 / 平台化与鉴权防攻击 / 合规护栏）</span>
       ${rmHtml}
-      <h2 class="p-title" style="margin-top:24px;margin-bottom:12px;">🧭 二、团队既有 4 个方向复盘归档（为什么卡住 & 怎么改造）</h2>
+      <span class="sec-label" style="margin-top:24px;">团队早期 4 个既有想法的复盘归档</span>
       ${oldHtml}
     </div>
   `;
@@ -272,15 +357,15 @@ function renderRoadmapAndArchive() {
 function openSnap(id) {
   const s = SIG_MAP[id];
   if (!s) return;
-  document.getElementById('mTitle').innerText = `[证据 #${s.id}] ${s.title}`;
-  document.getElementById('mMeta').innerText = `渠道：${s.channel} | 来源：${s.author_or_app} | 指标：${s.metric_primary} (${s.metric_secondary}) | 入库时间：${s.collected_at}`;
-  document.getElementById('mBody').innerText = `【本地完整正文快照（免登录）】\n${s.content}\n\n【分类与检索词】\n分类：${s.category} | 检索词：${s.query_term} | 价格/评分：${s.rating_or_price}\n痛点标签：${s.pain_tags || '已验证信号'}`;
+  document.getElementById('mTitle').innerText = `证据 #${s.id} — ${cleanText(s.title)}`;
+  document.getElementById('mMeta').innerText = `渠道：${cleanText(s.channel)} | 来源：${cleanText(s.author_or_app)} | 指标：${cleanText(s.metric_primary)} (${cleanText(s.metric_secondary)}) | 时间：${s.collected_at}`;
+  document.getElementById('mBody').innerText = `[本地完整正文快照]\n${cleanText(s.content)}\n\n[分类与检索词]\n分类：${cleanText(s.category)} | 检索词：${cleanText(s.query_term)} | 价格/评分：${cleanText(s.rating_or_price)}\n标签：${cleanText(s.pain_tags || '有效信号')}`;
   document.getElementById('mLink').href = s.source_url || '#';
   document.getElementById('snapModal').style.display = 'flex';
 }
 
 function switchTab(id, btn) {
-  ['tab-projects','tab-submit','tab-whitepaper','tab-signals','tab-roadmap'].forEach(t => {
+  ['tab-projects','tab-signals','tab-submit','tab-whitepaper','tab-roadmap'].forEach(t => {
     document.getElementById(t).style.display = (t === id) ? 'block' : 'none';
   });
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
@@ -300,11 +385,11 @@ function filterRows() {
 (function init() {
   document.getElementById('lblUpdated').innerText = DATA.updated_at || '';
   const archs = DATA.archives || [];
-  document.getElementById('kpiArchives').innerText = `${archs.length || 1} 期`;
+  document.getElementById('kpiArchives').innerText = `${archs.length || 1}`;
   document.getElementById('lblBatches').innerText = archs.map(a => a.date).join(', ') || '2026-11-18';
   renderProjects();
+  renderSignals();
   renderSubmitTab();
   renderWhitepaper();
-  renderSignals();
   renderRoadmapAndArchive();
 })();
