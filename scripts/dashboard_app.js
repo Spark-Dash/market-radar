@@ -303,7 +303,7 @@ function renderRoadmapAndArchive() {
       </div>` : '<p class="panel-empty">暂无采集批次归档。</p>'}
     </section>
     <div class="inspector">
-      <div class="roadmap-title"><span class="sec-label">本月与本季度迭代计划</span><a href="https://github.com/donghyq/market-radar/issues/2" target="_blank" rel="noopener noreferrer" class="btn">查看 GitHub Issue #2 ↗</a></div>
+      <div class="roadmap-title"><span class="sec-label">初创团队发展战略（杠铃法则）· 结构性拐点挖掘体系 · 迭代 Roadmap</span><a href="https://github.com/donghyq/market-radar/issues/2" target="_blank" rel="noopener noreferrer" class="btn">查看 GitHub Issue #2 ↗</a></div>
       ${rmHtml}
       <span class="sec-label" style="margin-top:24px;">团队早期 4 个既有想法的复盘归档</span>
       ${oldHtml}

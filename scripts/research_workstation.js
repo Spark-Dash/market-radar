@@ -1,4 +1,5 @@
 const SHORT_TITLES = {
+  'STRAT-01': '具身AI宠物大脑 · Microduck套件',
   'AUTO-01': '2张图爆单裂变 · 违禁词防封台',
   'PROJ-01': '免Claude · 开智小曲动画工坊',
   'TEAM-FE4500': 'TK达人寄样防白嫖 · 自动催片',
@@ -10,6 +11,7 @@ const SHORT_TITLES = {
   'PROJ-05': '一晚3毛钱 · 大肥鱼弹幕整活包',
 };
 const HERO_TITLES = {
+  'STRAT-01': '具身 AI 宠物「灵魂大脑」中控固件 + 高校/创客实训套件（基于 Microduck）',
   'AUTO-01': '抖音/小红书「2张图带货爆款裂变 + 违禁词防封清洗」批量工作台',
   'PROJ-01': '国内免 Claude「开智小曲 / Remotion 知识动画」一键生成工坊',
   'TEAM-FE4500': 'TikTok 跨境卖家「达人寄样防白嫖自动催片 + 挂车监控」桌面助手',
@@ -24,6 +26,7 @@ function heroTitle(p) {
   return HERO_TITLES[p.code] || cleanText(p.title).replace(/^(?:【[^】]+】|项目\s*\d+[：:])\s*/, "");
 }
 const RESEARCH_QUESTIONS = {
+  'STRAT-01': '手搓复刻玩家与高校实验室是否愿为「免配环境 Sim2Real 校准固件 + DeepSeek 情绪大脑」付费？',
   'AUTO-01': '带货创作者是否愿意为批量出图付费？',
   'PROJ-01': '收藏教程、遇到配置困难的人，是否愿意为成片付费？',
   'TEAM-FE4500': '熟人客户是否愿意为寄样跟进付定金？需求能否复制到其他卖家？',
@@ -35,6 +38,7 @@ const RESEARCH_QUESTIONS = {
   'PROJ-05': '直播创作者是否愿意为互动效果和低运行成本付费？',
 };
 const BRIEFS = {
+  'STRAT-01': '切入双足机器人 BOM 成本击穿 2000 元拐点，不做低毛利外壳代工，专卖解决 Sim2Real 真机崩坏与赋予活物灵魂的 AI 中控固件及高校实训套件。',
   'AUTO-01': '帮图文带货创作者用一张商品图批量生成素材，并提示需要人工复核的文案。',
   'PROJ-01': '把讲义、课程笔记或科普文稿转换成带配音的知识动画，省掉手写分镜和配置环境的时间。',
   'TEAM-FE4500': '让跨境卖家按寄样状态跟进达人，及时发现未交片或未挂商品链接的订单。',
@@ -379,7 +383,7 @@ function renderUnfoldedArchive(p) {
   };
   return `
     <div class="inspector">
-      <span class="sec-label">01 / 运转流程（输入 → 处理 → 产出）</span>
+      <span class="sec-label">01 / 发展周期与执行路径（从 0 成本破局到高壁垒终局）</span>
       <div class="card-cell" style="margin-bottom:18px;">
         <div class="cell-v">${steps}</div>
       </div>
