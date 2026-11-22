@@ -33,6 +33,8 @@ def sync_db_from_jsonl(conn: sqlite3.Connection, base_dir: pathlib.Path, insert_
             metric_secondary=r.get("metric_secondary", ""),
             rating_or_price=r.get("rating_or_price", ""),
             source_url=r.get("source_url", ""),
+            published_at=r.get("published_at", ""),
+            collected_at=r.get("collected_at", ""),
         )
         if ok:
             loaded += 1
@@ -63,6 +65,9 @@ def dump_db_to_jsonl(conn: sqlite3.Connection, base_dir: pathlib.Path) -> int:
         "noise_signals": sum(1 for r in rows if r["is_noise"]),
     }
     (arch_dir / f"{today}.json").write_text(json.dumps(snap, ensure_ascii=False, indent=2), encoding="utf-8")
+    from persona_and_freshness import enrich_all_signals
+    rep = enrich_all_signals(conn, today)
+    (base_dir / "data" / "persona_stats.json").write_text(json.dumps(rep, ensure_ascii=False, indent=2), encoding="utf-8")
     return len(rows)
 
 

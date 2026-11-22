@@ -73,6 +73,10 @@ def init_db(conn: sqlite3.Connection) -> None:
             is_noise INTEGER DEFAULT 0,
             noise_reason TEXT DEFAULT '',
             collected_at TEXT NOT NULL,
+            published_at TEXT DEFAULT '',
+            freshness_tier TEXT DEFAULT '30d_active',
+            audience_tag TEXT DEFAULT '',
+            persona_note TEXT DEFAULT '',
             UNIQUE(channel, title, author_or_app)
         )
         """
@@ -129,6 +133,8 @@ def insert_signal(
     metric_secondary: str,
     rating_or_price: str,
     source_url: str,
+    published_at: str = "",
+    collected_at: str = "",
 ) -> bool:
     cur = conn.cursor()
     cur.execute(
@@ -136,8 +142,8 @@ def insert_signal(
         INSERT OR IGNORE INTO raw_signals (
             channel, source_tier, category, query_term, title, content,
             author_or_app, metric_primary, metric_secondary, rating_or_price,
-            source_url, collected_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            source_url, collected_at, published_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             channel,
@@ -151,7 +157,8 @@ def insert_signal(
             metric_secondary[:80],
             rating_or_price[:80],
             source_url[:500],
-            now_str(),
+            collected_at or now_str(),
+            (published_at or (collected_at or now_str())[:10])[:10],
         ),
     )
     return cur.rowcount > 0
@@ -195,6 +202,9 @@ def collect_appstore(conn: sqlite3.Connection, custom_queries: Optional[List[Tup
                     rating = entry.get("im:rating", {}).get("label", "")
                     if rating not in ("1", "2", "3"):
                         continue
+                    pub_dt = (entry.get("updated", {}).get("label", "") or "")[:10]
+                    if pub_dt and (datetime.date.today() - datetime.date.fromisoformat(pub_dt)).days > 180:
+                        continue
                     r_title = strip_html(entry.get("title", {}).get("label", ""))
                     r_content = strip_html(entry.get("content", {}).get("label", ""))
                     combined = f"{r_title} {r_content}"
@@ -212,6 +222,7 @@ def collect_appstore(conn: sqlite3.Connection, custom_queries: Optional[List[Tup
                             metric_secondary=f"均分 {avg_rating}",
                             rating_or_price=f"{rating}星 / 内购订阅制",
                             source_url=app_url,
+                            published_at=pub_dt,
                         )
                         if ok:
                             added += 1
@@ -264,6 +275,10 @@ def collect_bilibili(conn: sqlite3.Connection, custom_queries: Optional[List[Tup
                 fav = int(item.get("favorites") or 0)
                 danmaku = int(item.get("video_review") or 0)
                 author = item.get("author", "")
+                pub_ts = int(item.get("pubdate") or 0)
+                pub_dt = datetime.datetime.fromtimestamp(pub_ts).strftime("%Y-%m-%d") if pub_ts > 0 else now_str()[:10]
+                if pub_ts > 0 and (datetime.date.today() - datetime.date.fromisoformat(pub_dt)).days > 180:
+                    continue
                 bvid = item.get("bvid", "")
                 aid = item.get("aid")
                 fav_ratio = round((fav / play * 100), 1) if play > 0 else 0.0
@@ -297,6 +312,7 @@ def collect_bilibili(conn: sqlite3.Connection, custom_queries: Optional[List[Tup
                     metric_secondary=f"收藏率 {fav_ratio}% / {danmaku} 弹幕",
                     rating_or_price="高收藏干货" if fav_ratio >= 5.0 else "常规视频",
                     source_url=f"https://www.bilibili.com/video/{bvid}",
+                    published_at=pub_dt,
                 )
                 if ok:
                     added += 1
@@ -326,6 +342,10 @@ def collect_wechat_sogou(conn: sqlite3.Connection, custom_queries: Optional[List
                 t_match = re.search(r"<h3[^>]*>\s*<a[^>]*href=\"([^\"]+)\"[^>]*>(.*?)</a>\s*</h3>", blk, re.S)
                 p_match = re.search(r'<p class="txt-info"[^>]*>(.*?)</p>', blk, re.S)
                 a_match = re.search(r'<span class="all-time-y2">(.*?)</span>', blk, re.S)
+                ts_match = re.search(r"timeConvert\('(\d+)'\)", blk)
+                pub_dt = datetime.datetime.fromtimestamp(int(ts_match.group(1))).strftime("%Y-%m-%d") if ts_match else now_str()[:10]
+                if ts_match and (datetime.date.today() - datetime.date.fromisoformat(pub_dt)).days > 180:
+                    continue
                 if not t_match:
                     continue
                 href, raw_title = t_match.group(1), t_match.group(2)
@@ -347,6 +367,7 @@ def collect_wechat_sogou(conn: sqlite3.Connection, custom_queries: Optional[List
                     metric_secondary=f"检索词: {term}",
                     rating_or_price="行业一线案例",
                     source_url=href,
+                    published_at=pub_dt,
                 )
                 if ok:
                     added += 1
@@ -446,6 +467,8 @@ def clean_and_tag_signals(conn: sqlite3.Connection) -> Dict[str, int]:
             (is_noise, noise_reason, ",".join(matched_tags), sid),
         )
     conn.commit()
+    from persona_and_freshness import enrich_all_signals
+    enrich_all_signals(conn)
     return {"total": total, "valid": valid_cnt, "noise": noise_cnt}
 
 

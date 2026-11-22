@@ -60,9 +60,12 @@ def export_all(conn=None, base_dir=BASE_DIR):
             except Exception:
                 pass
 
+    ps_path = base_dir / "data" / "persona_stats.json"
+    persona_stats = json.loads(ps_path.read_text(encoding="utf-8")) if ps_path.exists() else {}
     tr_path = base_dir / "data" / "tech_radar.json"
     tech_radar = json.loads(tr_path.read_text(encoding="utf-8")) if tr_path.exists() else {"items": []}
     bundle = {
+        "persona_stats": persona_stats,
         "tech_radar": tech_radar.get("items", []),
         "updated_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
         "projects": projects,

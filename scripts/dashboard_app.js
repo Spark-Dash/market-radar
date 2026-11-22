@@ -1,3 +1,123 @@
+
+function freshBadge(tier, pubDate) {
+  const dt = esc(pubDate || "未知");
+  if (tier === "7d_hot") return `<span class="fresh-badge fresh-7d">近7天 · ${dt}</span>`;
+  if (tier === "30d_active") return `<span class="fresh-badge fresh-30d">近30天 · ${dt}</span>`;
+  if (tier === "90d_recent" || tier === "180d_halfyear") return `<span class="fresh-badge fresh-90d">近期 · ${dt}</span>`;
+  if (tier === "stale_archive") return `<span class="fresh-badge fresh-stale">历史旧帖 · ${dt}</span>`;
+  return `<span class="fresh-badge fresh-90d">${dt}</span>`;
+}
+
+function jumpToAudienceSignals(audName) {
+  const btns = document.querySelectorAll(".nav-btn");
+  let sigBtn = null;
+  btns.forEach(b => { if (b.textContent.includes("信号库")) sigBtn = b; });
+  if (sigBtn) switchTab("tab-signals", sigBtn);
+  const audSel = document.getElementById("audSelect");
+  const timeSel = document.getElementById("timeSelect");
+  if (audSel) audSel.value = audName;
+  if (timeSel) timeSel.value = "active180";
+  filterRows();
+}
+
+function renderPersonaAndFreshness() {
+  const ps = DATA.persona_stats || {};
+  const fb = ps.freshness_breakdown || {};
+  const personas = ps.audience_personas || [];
+  const hot7 = fb["7d_hot"] || 0;
+  const act30 = fb["30d_active"] || 0;
+  const rec90 = (fb["90d_recent"] || 0) + (fb["180d_halfyear"] || 0);
+  const stale = fb["stale_archive"] || 0;
+  const maxTotal = Math.max(1, ...personas.map(p => p.total || 1));
+
+  const pRows = personas.map((p, idx) => {
+    const freshPct = Math.round(((p.fresh_30d || 0) / maxTotal) * 100);
+    const oldPct = Math.round((((p.total || 0) - (p.fresh_30d || 0)) / maxTotal) * 100);
+    const freshRatio = p.total ? Math.round((p.fresh_30d / p.total) * 100) : 0;
+    return `
+      <tr>
+        <td width="48" class="mono" style="color:var(--text-muted);">${String(idx+1).padStart(2,"0")}</td>
+        <td width="220">
+          <strong style="color:var(--text);font-size:13.5px;">${esc(p.audience)}</strong>
+          <div class="persona-bar-bg">
+            <div class="persona-bar-fresh" style="width:${freshPct}%" title="近30天当下信号"></div>
+            <div class="persona-bar-old" style="width:${oldPct}%" title="早于30天信号"></div>
+          </div>
+        </td>
+        <td width="165" class="mono">
+          <strong style="color:var(--accent);font-size:14px;">${p.fresh_30d} 条近30天</strong>
+          <div style="font-size:11.5px;color:var(--text-muted);">总计 ${p.total} 条 · 当下占比 ${freshRatio}%${p.stale_cnt ? ` · 含旧帖 ${p.stale_cnt}` : ""}</div>
+        </td>
+        <td style="color:var(--text-secondary);">${esc(p.pay_habit)}</td>
+        <td width="175" style="color:var(--text);font-weight:500;">${esc(p.price_band)}</td>
+        <td width="190" style="color:var(--text-secondary);font-size:12.5px;">${esc(p.channels)}</td>
+        <td width="105"><button class="btn" onclick="jumpToAudienceSignals('${esc(p.audience)}')">查看信号 →</button></td>
+      </tr>
+    `;
+  }).join("");
+
+  const el = document.getElementById("tab-persona");
+  if (!el) return;
+  el.innerHTML = `
+    <div class="inspector" style="margin-bottom:18px;">
+      <div class="ins-head" style="margin-bottom:16px;padding-bottom:12px;">
+        <div>
+          <span class="sec-label">01 / 信号真实发布时间线核验（区分源站发布日期与爬虫入库日期）</span>
+          <h2 class="ins-title">时效性分布：自动隔离半年以上陈旧内容，聚焦当下市场真实热度</h2>
+        </div>
+        <span class="pill pill-s">采集端已启用 180 天新鲜度拦截</span>
+      </div>
+      <div class="timeline-grid">
+        <div class="card-cell" style="border-left:3px solid var(--accent);">
+          <span class="cell-k">近 7 天当下信号（源站新发）</span>
+          <div style="font-size:26px;font-weight:700;color:var(--text);font-family:var(--mono);">${hot7} <small style="font-size:12px;color:var(--text-muted);font-weight:400;">条</small></div>
+          <div class="cell-v" style="margin-top:4px;">本周最新涌现的用户差评、高热复刻与新物种</div>
+        </div>
+        <div class="card-cell" style="border-left:3px solid #3b82f6;">
+          <span class="cell-k">8 ~ 30 天当月活跃信号</span>
+          <div style="font-size:26px;font-weight:700;color:var(--text);font-family:var(--mono);">${act30} <small style="font-size:12px;color:var(--text-muted);font-weight:400;">条</small></div>
+          <div class="cell-v" style="margin-top:4px;">当月正在持续产生交易与讨论的有效痛点</div>
+        </div>
+        <div class="card-cell">
+          <span class="cell-k">31 ~ 180 天近期基线信号</span>
+          <div style="font-size:26px;font-weight:700;color:var(--text);font-family:var(--mono);">${rec90} <small style="font-size:12px;color:var(--text-muted);font-weight:400;">条</small></div>
+          <div class="cell-v" style="margin-top:4px;">半年内仍具参考价值的赛道需求证据</div>
+        </div>
+        <div class="card-cell" style="border-left:3px solid #ef4444;">
+          <span class="cell-k">已识别隔离的历史旧帖 (&gt;180天)</span>
+          <div style="font-size:26px;font-weight:700;color:#fca5a5;font-family:var(--mono);">${stale} <small style="font-size:12px;color:var(--text-muted);font-weight:400;">条</small></div>
+          <div class="cell-v" style="margin-top:4px;">经反查源站时间戳揪出的早年旧教程，信号库默认隐藏防误导</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="inspector">
+      <div class="ins-head" style="margin-bottom:14px;padding-bottom:12px;">
+        <div>
+          <span class="sec-label">02 / 买单人群标签与付费画像统计（按近 30 天当下信号热度排序）</span>
+          <h2 class="ins-title">目标客群盘子对比：谁在当下最活跃、怎么付钱、去哪获客截流</h2>
+        </div>
+      </div>
+      <div class="table-wrap" style="margin-bottom:0;">
+        <table>
+          <thead>
+            <tr>
+              <th>序号</th>
+              <th>买单人群画像标签</th>
+              <th>当下活跃度 (近30天 / 总量)</th>
+              <th>典型付费心理与决策特征</th>
+              <th>主力接受定价区间</th>
+              <th>核心获客与截流阵地</th>
+              <th>下钻明细</th>
+            </tr>
+          </thead>
+          <tbody>${pRows}</tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
 const SIG_MAP = Object.create(null);
 (DATA.signals || []).forEach(s => { SIG_MAP[s.id] = s; });
 
@@ -109,13 +229,24 @@ function renderDetailCard(p, idx) {
 
 function renderSignals() {
   const sigs = DATA.signals || [];
-  document.getElementById('lblSigCnt').innerText = sigs.length;
+  document.getElementById('lblSigCnt').innerText = sigs.filter(s => !s.is_noise && s.freshness_tier !== 'stale_archive').length;
   const rows = sigs.map(s => {
     const source = sourceLink(s.source_url);
+    const pubDate = s.published_at || (s.collected_at||'').slice(0,10);
+    const colDate = (s.collected_at||'').slice(0,10);
+    const fTier = s.freshness_tier || '30d_active';
+    const aud = s.audience_tag || '未分类人群';
     return `
-      <tr class="sig-row" data-ch="${esc(s.channel)}" data-noise="${s.is_noise ? 1 : 0}" data-q="${esc([s.id, s.title, s.content, s.author_or_app].join(' '))}">
-        <td style="font-family:monospace;color:var(--text-muted);">#${s.id}<br><small>${esc((s.collected_at||'').slice(0,10))}</small></td>
-        <td><span class="pill">${esc(s.channel)}</span><br><small style="color:var(--text-muted)">${esc(s.category)}</small></td>
+      <tr class="sig-row" data-ch="${esc(s.channel)}" data-aud="${esc(aud)}" data-fresh="${esc(fTier)}" data-noise="${s.is_noise ? 1 : 0}" data-q="${esc([s.id, s.title, s.content, s.author_or_app, aud].join(' '))}">
+        <td style="font-family:monospace;color:var(--text-muted);">
+          <b>#${s.id}</b><br>
+          ${freshBadge(fTier, pubDate)}<br>
+          <small style="font-size:10.5px;">入库 ${esc(colDate)}</small>
+        </td>
+        <td>
+          <span class="pill">${esc(s.channel)}</span><br>
+          <span class="aud-pill">${esc(aud)}</span>
+        </td>
         <td><strong style="color:var(--text);font-weight:500;">${esc(s.author_or_app)}</strong><br><small style="color:var(--text-muted)">${esc(s.rating_or_price)}</small></td>
         <td>${s.is_noise ? '<span class="pill" style="color:#f87171;">已过滤噪音</span> ' : ''}<strong style="color:var(--text);font-weight:500;">${esc(s.title)}</strong><br><span style="color:var(--text-secondary)">${esc(s.content)}</span></td>
         <td style="color:var(--text-secondary);">${esc(s.metric_primary)}<br><small style="color:var(--text-muted)">${esc(s.metric_secondary)}</small></td>
@@ -127,23 +258,36 @@ function renderSignals() {
     `;
   }).join('');
 
+  const allAuds = [...new Set(sigs.map(s => cleanText(s.audience_tag)).filter(Boolean))];
+  const allChs = [...new Set(sigs.map(s => cleanText(s.channel)).filter(Boolean))];
+
   document.getElementById('tab-signals').innerHTML = `
-    <div class="signal-controls">
-      <input id="qInput" aria-label="搜索信号" placeholder="搜索证据编号、标题、原文或来源" oninput="filterRows()">
-      <select id="chSelect" aria-label="按渠道筛选" onchange="filterRows()">
+    <div class="signal-controls" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px;">
+      <input id="qInput" style="max-width:280px;" aria-label="搜索信号" placeholder="搜索编号、标题、原文或人群..." oninput="filterRows()">
+      <select id="timeSelect" style="max-width:210px;" aria-label="按发布时效筛选" onchange="filterRows()">
+        <option value="active180">当下有效信号 (剔除超半年旧帖)</option>
+        <option value="7d">仅看近 7 天新发布</option>
+        <option value="30d">仅看近 30 天内发布</option>
+        <option value="all_time">全部时间 (含早期历史旧帖)</option>
+        <option value="stale_only">仅看被隔离的超半年旧帖</option>
+      </select>
+      <select id="audSelect" style="max-width:220px;" aria-label="按买单人群筛选" onchange="filterRows()">
+        <option value="">全部买单人群 (${allAuds.length}类)</option>
+        ${allAuds.map(a => `<option value="${esc(a)}">${esc(a)}</option>`).join('')}
+      </select>
+      <select id="chSelect" style="max-width:190px;" aria-label="按渠道筛选" onchange="filterRows()">
         <option value="">全部渠道</option>
-        ${[...new Set(sigs.map(s => cleanText(s.channel)).filter(Boolean))].map(ch => `<option value="${esc(ch)}">${esc(ch)}</option>`).join('')}
+        ${allChs.map(ch => `<option value="${esc(ch)}">${esc(ch)}</option>`).join('')}
       </select>
-      <select id="noiseSelect" aria-label="按有效性筛选" onchange="filterRows()">
-        <option value="valid">仅有效信号</option>
-        <option value="all">包括已过滤</option>
-        <option value="noise">仅已过滤</option>
+      <select id="noiseSelect" style="max-width:135px;" aria-label="按有效性筛选" onchange="filterRows()">
+        <option value="valid">有效信号</option>
+        <option value="all">含噪音</option>
       </select>
-      <output id="signalCount" aria-live="polite"></output>
+      <output id="signalCount" aria-live="polite" style="font-size:12.5px;color:var(--text-muted);"></output>
     </div>
     <div class="table-wrap" role="region" aria-label="信号明细" tabindex="0">
       <table>
-        <thead><tr><th width="75">编号</th><th width="175">渠道与分类</th><th width="165">来源对象</th><th>标题与本地保存的正文摘要</th><th width="160">量化指标</th><th width="105">操作</th></tr></thead>
+        <thead><tr><th width="130">编号 / 源站发布日</th><th width="185">渠道 / 买单人群画像</th><th width="160">来源对象</th><th>标题与本地保存的正文摘要</th><th width="155">量化指标</th><th width="95">操作</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
     </div>
@@ -231,6 +375,7 @@ function submitNewIdea() {
   selectedCode = newObj.code;
   workMode = 'focus';
   renderProjects();
+  renderPersonaAndFreshness();
   document.getElementById('submitMsg').innerText = `已生成规则评分（${total}/100），方向已加到本机工作台。`;
   document.getElementById('cliBox').style.display = 'block';
   document.getElementById('cliCmd').innerText =
@@ -326,7 +471,7 @@ function openSnap(id) {
   const s = SIG_MAP[id];
   if (!s) return;
   document.getElementById('mTitle').textContent = `证据 #${s.id} — ${cleanText(s.title)}`;
-  document.getElementById('mMeta').textContent = `${evidenceKind(s)} · ${cleanText(s.channel)} · ${cleanText(s.author_or_app)} · ${cleanText(s.collected_at)}`;
+  document.getElementById('mMeta').textContent = `源站发布：${cleanText(s.published_at || '未知')} | 采集入库：${cleanText(s.collected_at)} | 人群画像：${cleanText(s.audience_tag || '通用')} | 渠道：${cleanText(s.channel)}`;
   document.getElementById('mBody').textContent = [
     s.is_noise ? `已过滤：${cleanText(s.noise_reason) || '未记录原因'}` : '',
     '[采集时保存的内容]',
@@ -334,7 +479,7 @@ function openSnap(id) {
     '',
     '[指标与分类]',
     [s.metric_primary, s.metric_secondary, s.rating_or_price].filter(Boolean).map(cleanText).join(' · '),
-    [s.category, s.query_term, s.pain_tags].filter(Boolean).map(cleanText).join(' · '),
+    [s.category, s.audience_tag, s.persona_note].filter(Boolean).map(cleanText).join(' · '),
   ].filter((line, i) => i !== 0 || line).join('\n');
   const source = sourceLink(s.source_url);
   const link = document.getElementById('mLink');
@@ -436,7 +581,7 @@ function renderToolkit() {
 }
 
 function switchTab(id, btn) {
-  ['tab-projects','tab-signals','tab-tech','tab-toolkit','tab-submit','tab-whitepaper','tab-roadmap'].forEach(t => {
+  ['tab-projects','tab-persona','tab-signals','tab-tech','tab-toolkit','tab-submit','tab-whitepaper','tab-roadmap'].forEach(t => {
     document.getElementById(t).style.display = (t === id) ? 'block' : 'none';
   });
   document.querySelectorAll('.nav-btn').forEach(b => {
@@ -447,25 +592,38 @@ function switchTab(id, btn) {
 }
 
 function filterRows() {
-  const q = document.getElementById('qInput').value.trim().toLowerCase();
+  const q = (document.getElementById('qInput')?.value || '').trim().toLowerCase();
   const id = q.match(/^#(\d+)$/)?.[1];
-  const ch = document.getElementById('chSelect').value;
-  const noise = document.getElementById('noiseSelect').value;
+  const ch = document.getElementById('chSelect')?.value || '';
+  const aud = document.getElementById('audSelect')?.value || '';
+  const tMode = document.getElementById('timeSelect')?.value || 'active180';
+  const noise = document.getElementById('noiseSelect')?.value || 'valid';
   let count = 0;
   document.querySelectorAll('.sig-row').forEach(r => {
-    const match = (!q || (id ? r.dataset.q.split(' ')[0] === id : r.dataset.q.toLowerCase().includes(q)))
+    const f = r.dataset.fresh;
+    let timeOk = true;
+    if (tMode === 'active180') timeOk = (f !== 'stale_archive');
+    else if (tMode === '7d') timeOk = (f === '7d_hot');
+    else if (tMode === '30d') timeOk = (f === '7d_hot' || f === '30d_active');
+    else if (tMode === 'stale_only') timeOk = (f === 'stale_archive');
+
+    const match = timeOk
+      && (!q || (id ? r.dataset.q.split(' ')[0] === id : r.dataset.q.toLowerCase().includes(q)))
       && (!ch || r.dataset.ch === ch)
+      && (!aud || r.dataset.aud === aud)
       && (noise === 'all' || r.dataset.noise === (noise === 'noise' ? '1' : '0'));
     r.hidden = !match;
     if (match) count++;
   });
-  document.getElementById('signalCount').textContent = `显示 ${count} 条`;
+  const out = document.getElementById('signalCount');
+  if (out) out.textContent = `显示 ${count} 条`;
 }
 
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('lblUpdated').textContent = DATA.updated_at || '未记录';
   document.getElementById('lblBatches').textContent = DATA.archives?.[0]?.date || '暂无';
   renderProjects();
+  renderPersonaAndFreshness();
   renderSignals();
   renderTechRadar();
   renderToolkit();

@@ -320,3 +320,15 @@ body { background: radial-gradient(ellipse at 52% -25%, #1c304a 0%, var(--bg) 46
 .archive-open .summary-lead {
   display: none;
 }
+
+/* Freshness & Persona Analytics */
+.fresh-badge { display: inline-block; padding: 1px 6px; border-radius: 4px; font-size: 10.5px; font-weight: 600; font-family: var(--mono); }
+.fresh-7d { background: rgba(45, 212, 191, 0.16); color: var(--accent); border: 1px solid rgba(45, 212, 191, 0.35); }
+.fresh-30d { background: rgba(59, 130, 246, 0.15); color: #93c5fd; border: 1px solid rgba(59, 130, 246, 0.35); }
+.fresh-90d { background: rgba(148, 163, 184, 0.14); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.28); }
+.fresh-stale { background: rgba(239, 68, 68, 0.12); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.3); }
+.aud-pill { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: 11px; background: #192b3c; color: #bae6fd; border: 1px solid #2d4a63; margin-top: 4px; }
+.persona-bar-bg { width: 100%; height: 6px; background: #1a2636; border-radius: 4px; overflow: hidden; margin-top: 6px; display: flex; }
+.persona-bar-fresh { background: var(--accent); height: 100%; }
+.persona-bar-old { background: #475569; height: 100%; }
+.timeline-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 18px; }

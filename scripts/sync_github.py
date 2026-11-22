@@ -17,7 +17,7 @@ RENDERER_FILES = (
 )
 DATA_FILES = (
     "inbox/chanmama_xianyu_xhs_signals.csv", "exports/signals_full.csv",
-    "data/signals/signals_master.jsonl", "data/tech_radar.json",
+    "data/signals/signals_master.jsonl", "data/tech_radar.json", "data/persona_stats.json",
 )
 
 
