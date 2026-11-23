@@ -1,9 +1,9 @@
 {
   "ref_date": "2026-11-23",
   "freshness_breakdown": {
-    "7d_hot": 139,
-    "30d_active": 18,
-    "90d_recent": 18,
+    "7d_hot": 162,
+    "30d_active": 20,
+    "90d_recent": 19,
     "180d_halfyear": 8,
     "stale_archive": 49,
     "recent_unverified": 0
@@ -11,35 +11,35 @@
   "audience_personas": [
     {
       "audience": "极客与AI/硬件开发者",
-      "total": 37,
-      "fresh_30d": 32,
+      "total": 46,
+      "fresh_30d": 41,
       "stale_cnt": 0,
       "pay_habit": "愿为免配环境整合包、校准固件与节省折腾时间买单",
       "price_band": "99~399 元 镜像/买断包",
       "channels": "GitHub、B站硬核科技区、V2EX、复刻交流群"
     },
     {
-      "audience": "备考学生与K12家长",
-      "total": 39,
-      "fresh_30d": 26,
-      "stale_cnt": 9,
-      "pay_habit": "焦虑驱动型即时付费，先款后货零账期，极重打印排版体验",
-      "price_band": "9.9~49.9 元 单次定制/打印包",
-      "channels": "闲鱼搜索、小红书备考/鸡娃笔记、家长微信群"
-    },
-    {
       "audience": "年轻玩家与桌宠受众",
-      "total": 32,
-      "fresh_30d": 24,
+      "total": 40,
+      "fresh_30d": 32,
       "stale_cnt": 6,
       "pay_habit": "为情绪陪伴、摸鱼解压与捏 OC 外观冲动付费，适合全球买断+DLC",
       "price_band": "18~29 元 Steam 本体 + 6~12 元 DLC",
       "channels": "Steam 新品节、B站游戏/桌宠区、小红书二次元OC圈"
     },
     {
+      "audience": "备考学生与K12家长",
+      "total": 41,
+      "fresh_30d": 28,
+      "stale_cnt": 9,
+      "pay_habit": "焦虑驱动型即时付费，先款后货零账期，极重打印排版体验",
+      "price_band": "9.9~49.9 元 单次定制/打印包",
+      "channels": "闲鱼搜索、小红书备考/鸡娃笔记、家长微信群"
+    },
+    {
       "audience": "B端企业与招投标专员",
-      "total": 31,
-      "fresh_30d": 21,
+      "total": 34,
+      "fresh_30d": 24,
       "stale_cnt": 5,
       "pay_habit": "防损失驱动（防废标/防泄密），客单价高且年卡续费稳，重视本地隐私",
       "price_band": "49 元/次 或 699~1980 元/年",
@@ -47,8 +47,8 @@
     },
     {
       "audience": "视频博主与内容创作者",
-      "total": 38,
-      "fresh_30d": 16,
+      "total": 40,
+      "fresh_30d": 17,
       "stale_cnt": 12,
       "pay_habit": "高频生产刚需，极其反感流氓自动续费，偏好买断或按量计费",
       "price_band": "29.9~69 元 买断或月卡",
@@ -65,8 +65,8 @@
     },
     {
       "audience": "大众效率与副业人群",
-      "total": 16,
-      "fresh_30d": 13,
+      "total": 17,
+      "fresh_30d": 14,
       "stale_cnt": 3,
       "pay_habit": "关注实用工具与性价比",
       "price_band": "19.9~99 元",
@@ -83,8 +83,8 @@
     },
     {
       "audience": "线下门店与个体商户",
-      "total": 9,
-      "fresh_30d": 3,
+      "total": 10,
+      "fresh_30d": 4,
       "stale_cnt": 6,
       "pay_habit": "不懂电脑 Excel，只认手机点选 30 秒出图，偏好百元内一次买断",
       "price_band": "99~199 元/年 或买断",
