@@ -332,3 +332,28 @@ body { background: radial-gradient(ellipse at 52% -25%, #1c304a 0%, var(--bg) 46
 .persona-bar-fresh { background: var(--accent); height: 100%; }
 .persona-bar-old { background: #475569; height: 100%; }
 .timeline-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 18px; }
+
+/* Team Strategy Blueprint */
+.blueprint-hero {
+  background: radial-gradient(ellipse at 90% 15%, rgba(45, 212, 191, 0.14), transparent 50%),
+              linear-gradient(120deg, #15253a, #0f1d2e 70%, #112a33);
+  border: 1px solid #2e4d63;
+  border-radius: 10px;
+  padding: 22px 24px;
+  margin-bottom: 18px;
+}
+.blueprint-hero h2 { margin: 6px 0 10px; font-size: 23px; font-weight: 650; color: #f4f9ff; letter-spacing: -0.02em; }
+.blueprint-hero p { margin: 0; font-size: 13.8px; line-height: 1.72; color: #cbd5e1; max-width: 980px; }
+.stage-track { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 14px 0 20px; }
+.stage-card {
+  background: var(--panel); border: 1px solid var(--border); border-top: 3px solid var(--accent);
+  border-radius: 8px; padding: 16px 18px; display: flex; flex-direction: column; gap: 8px;
+}
+.stage-card.gold { border-top-color: var(--gold); }
+.stage-card.blue { border-top-color: #60a5fa; }
+.stage-kicker { font-family: var(--mono); font-size: 11px; color: var(--accent); letter-spacing: 0.05em; }
+.stage-card.gold .stage-kicker { color: var(--gold); }
+.stage-card.blue .stage-kicker { color: #93c5fd; }
+.stage-card h4 { margin: 0; font-size: 15px; color: var(--text); font-weight: 600; }
+.stage-card p { margin: 0; font-size: 13px; color: var(--text-secondary); line-height: 1.65; }
+@media (max-width: 960px) { .stage-track { grid-template-columns: 1fr; } }

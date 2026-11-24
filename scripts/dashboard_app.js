@@ -524,7 +524,68 @@ function renderRoadmapAndArchive() {
     </div>
   `).join('');
 
-  document.getElementById('tab-roadmap').innerHTML = `
+
+  const strategyBlueprint = `
+    <div class="blueprint-hero">
+      <div class="research-kicker"><span></span> 团队战略共识 · 基于 1,300+ 条真实市场交易与痛点信号</div>
+      <h2>轻资产跑通自动化现金流，集中技术火力打穿「AI 灵魂宠物」软硬一体主线</h2>
+      <p>没有外部资金与资源背书的技术团队，最忌讳走两个极端：一是长期接零散低价定制沦为外包作坊，没有复用资产；二是一上来重投入开模或做超长周期大项目，未见营收先耗尽心气。我们的路径非常清晰——<strong>短期用 1~2 周能闭环的自动化工具跑通正向现金流，覆盖算力与硬件研发开销；中长期将团队最擅长的 AI Agent、强化学习与多模态能力沉淀进同一套「灵魂大脑」，从 Steam 桌面陪伴游戏一路打通到具身桌面机器人。</strong></p>
+    </div>
+
+    <div class="inspector" style="margin-bottom:18px;">
+      <span class="sec-label">第一条线 · 短期现金流抓手（第 1 ~ 4 周：先收款、自动化交付、零账期）</span>
+      <div class="summary-lead" style="margin-bottom:14px;">
+        目标：不做需要求着客户付尾款的重度定制，从已验证有高频付费意愿的切口里选 1~2 把快刀，两周内跑通首笔公域陌生人订单，建立稳定的日常现金流。
+      </div>
+      <div class="grid-3" style="margin-bottom:0;">
+        <div class="card-cell">
+          <span class="cell-k" style="color:var(--text);">候选抓手 A · 免 Claude 知识动画生成工坊</span>
+          <div class="cell-v">B 站相关教程近万收藏（收藏率超 11%），大量老师与创作者卡在海外账号封禁与环境报错。用预置 Remotion 组件模板 + DeepSeek-V4.1-Flash（单条成本不到 1 分钱），从闲鱼 49 元代做平滑演进至 69 元/月在线工具。</div>
+        </div>
+        <div class="card-cell">
+          <span class="cell-k" style="color:var(--text);">候选抓手 B · 2 张图带货裂变与违禁词清洗台</span>
+          <div class="cell-v">切入抖音/小红书图文带货日销破十万但美工软件频繁扣费报错、达人极怕违禁词封号的刚需。导入 1 张原图 10 秒生成 20 套过审痛点主图，按 39.9 元/月或 168 元/年订阅变现。</div>
+        </div>
+        <div class="card-cell">
+          <span class="cell-k" style="color:var(--text);">候选抓手 C · 现有代码直接变现（LawFlow / 规划表）</span>
+          <div class="cell-v">将现有 LawFlow 接上动态人物关系图，向急需案源的青年律师提供判决书转 60 秒图解获客视频（99元体验/299元包月）；将教材规划代码转为闲鱼 19.9 元考研精确到页打卡 PDF 自动发货（闲鱼同类链接超 700~5000 人想要）。</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="inspector" style="margin-bottom:18px;">
+      <span class="sec-label">第二条线 · 长期高壁垒主线（「AI 灵魂宠物」软硬一体三阶跃迁）</span>
+      <div class="summary-lead" style="margin-bottom:14px;">
+        为什么这是能做出长期复利与高天花板的主战场？数据同时指明了两个信号：软件侧，Steam 桌面底部挂机桌宠免国内版号、全球美金结算，同类桌宠插件近 30 天下载达 47 万次；硬件侧，开源双足小鸭子 Microduck 闲鱼代购标价 ¥2,888 且缺货仍有 576 人想要，国内 DIY 成本虽降至 1,500 元内，但全网复刻者普遍卡在「仿真迁真机步态崩坏（486赞痛点）+ 没有交互灵魂」。<strong>纯游戏小团队造不出强化学习双足真机，华强北硬件厂写不出有记忆温度的 AI 灵魂大脑——把这两端打通，就是别人抄不走的壁垒。</strong>
+      </div>
+      <div class="stage-track">
+        <div class="stage-card blue">
+          <span class="stage-kicker">STAGE 01 · 第 1 ~ 2 个月（纯软破局与攒粉）</span>
+          <h4>Steam 桌面挂机游戏《AI 灵魂桌宠》</h4>
+          <p>零硬件库存起步。复用大肥鱼设定与 DeepSeek-V4.1-Flash 状态机，用 Godot 做驻留屏幕底部的透明陪伴小鸭子（感知工作窗口吐槽陪伴、换装养成）。交 100 美元押金免版号上架 Steam 全球收买断美金（$3.99 + 外观 DLC），快速跑通收入并沉淀数万名喜欢这只小鸭子的核心玩家社群。</p>
+        </div>
+        <div class="stage-card">
+          <span class="stage-kicker">STAGE 02 · 第 2 ~ 5 个月（高毛利固件与高校采购）</span>
+          <h4>Microduck「灵魂大脑」固件与高校实训箱</h4>
+          <p>不开重资产模具，采购 1,500 元散件攻克「廉价舵机 Sim2Real 一键校准 + 多模态语音情绪动作联动」。向全网上万名手搓复刻玩家售卖 199~399 元免配置烧录镜像与中控台；同时对接全国高职与高校新建具身智能实训室需求，售卖 3,980~6,800 元/套的图形化 RL 训练与交互教学箱。</p>
+        </div>
+        <div class="stage-card gold">
+          <span class="stage-kicker">STAGE 03 · 半年以上（软硬记忆互通与系统授权）</span>
+          <h4>屏幕宠物一键同步实体躯壳 · 具身伴侣 OS</h4>
+          <p>打通杀手级体验：玩家在电脑 Steam 桌面上养熟、拥有专属记忆和口头禅的那只电子小鸭子，可一键导出记忆档案灌入桌上的实体双足小鸭子中走到现实陪伴。最终沉淀跨构型的《桌面具身伴侣 SDK》，向 AI 玩具与硬件厂商按台收取软件 License 授权费或开启融资。</p>
+        </div>
+      </div>
+
+      <span class="sec-label">团队协同与执行原则</span>
+      <div class="grid-3" style="margin-bottom:0;">
+        <div class="card-cell"><span class="cell-k">1. 工具链拉齐（10倍研发效率）</span><div class="cell-v">全员统一使用 <code>Codex CLI + DeepSeek Harness</code>（主力模型 <code>DeepSeek-V4.1-Flash</code>），共享仓库 Skill 与规则模板，把精力聚焦在核心体验而非重复脚手架上。</div></div>
+        <div class="card-cell"><span class="cell-k">2. 真实信号与 48h 付款验证</span><div class="cell-v">拒绝闭门争论。新想法先通过 Market Radar 核查真实差评与闲鱼想要数，再用 48 小时样片/商品卡测试陌生买家是否真掏定金，成则扩投，不成则果断止损。</div></div>
+        <div class="card-cell"><span class="cell-k">3. 代码与数据资产处处复用</span><div class="cell-v">无论是知识动画的分镜引擎，还是桌面挂机游戏与实体机器人的宠物性格记忆引擎，每一行代码都围绕长期可复用的核心资产构建，让团队成员与产品壁垒同步成长。</div></div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('tab-roadmap').innerHTML = strategyBlueprint + `
     <section class="desk-panel matrix-panel archive-panel">
       <div class="panel-head"><h3>数据批次归档</h3><span class="panel-count">${archives.length} 期</span></div>
       ${archives.length ? `<div class="table-wrap" role="region" aria-label="历史批次明细" tabindex="0">
