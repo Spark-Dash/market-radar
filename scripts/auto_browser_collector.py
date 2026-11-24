@@ -1,106 +1,204 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-蝉妈妈 / 闲鱼 / 小红书 免破解全自动抓取器 (Playwright 持久化登录态 + XHR JSON 响应拦截)
-核心原理：
-1. 不逆向前端 JS 签名算法（避免平台每周更新 webpack 导致爬虫失效或封号）；
-2. 启动本地真实 Google Chrome 并挂载独立持久化目录 (.browser_profile/)：
-   - 首次运行 `--login` 扫码登录一次蝉妈妈/闲鱼/小红书，Cookie 与设备指纹永久保存在本地；
-   - 后续日常或定时任务运行 `--collect`，自动打开目标榜单/搜索页，通过 `page.on("response")` 直接在内存里截获后台返回的干净 JSON 数据包并写入 SQLite 与 JSONL！
+蝉妈妈 / 闲鱼 / 小红书 全自动真机 XHR 精确采集器
+利用本地 .browser_profile 登录态 + 反 webdriver 检测，直接拦截并精确解析：
+1. 闲鱼 (mtop.taobao.idlemtopsearch.pc.search/1.0)：提取真实商品描述、价格、想要人数、好评标签、地区与单品直达链接；
+2. 小红书 (so.xiaohongshu.com/api/sns/web/v2/search/notes)：提取真实痛点笔记标题、点赞数、作者、发布日期与 xsec_token 链接；
+3. 蝉妈妈 (/douyin/ 搜索与热榜 API)：提取抖音带货选品、低粉爆款视频与实时商业热词。
 """
 
 import argparse
+import datetime
 import json
 import pathlib
 import re
-import sqlite3
 import sys
-import time
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import urllib.parse
 from typing import Any, Dict, List
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
 BASE_DIR = pathlib.Path(__file__).resolve().parent.parent
 PROFILE_DIR = BASE_DIR / ".browser_profile"
 CHROME_PATH = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+TODAY = datetime.date.today()
 
 
-def extract_json_candidates(data: Any, platform: str, query: str) -> List[Dict[str, str]]:
-    """递归从截获的 XHR/Fetch JSON 响应树中提取商品、投流视频或痛点笔记条目"""
-    results: List[Dict[str, str]] = []
-
-    def walk(node: Any):
-        if isinstance(node, dict):
-            # 1. 蝉妈妈视频/商品投流结构识别
-            title = (
-                node.get("aweme_title")
-                or node.get("product_title")
-                or node.get("title")
-                or node.get("note_title")
-                or node.get("display_title")
-                or ""
-            )
-            if isinstance(title, str) and len(title.strip()) >= 6:
-                sales_or_like = (
-                    node.get("volume_text")
-                    or node.get("sales_count")
-                    or node.get("digg_count")
-                    or node.get("liked_count")
-                    or node.get("want_cnt")
-                    or node.get("wantCnt")
-                    or ""
-                )
-                author = (
-                    node.get("author_name")
-                    or node.get("nickname")
-                    or node.get("shop_name")
-                    or node.get("user_nick")
-                    or platform
-                )
-                price = node.get("price_text") or node.get("price") or "高潜商业信号"
-                url = node.get("aweme_url") or node.get("url") or node.get("share_url") or ""
-                desc = node.get("desc") or node.get("sub_title") or title
-                if sales_or_like != "" or "chanmama" in platform.lower():
-                    results.append(
-                        {
-                            "title": str(title).strip()[:180],
-                            "content": f"[自动拦截XHR数据包] {str(desc).strip()[:400]}",
-                            "author": str(author).strip()[:80],
-                            "metric_primary": f"热度/销量: {sales_or_like}" if sales_or_like else "榜单命中",
-                            "metric_secondary": f"检索词: {query}",
-                            "price": str(price)[:60],
-                            "url": str(url)[:300],
-                        }
-                    )
-            for v in node.values():
-                walk(v)
-        elif isinstance(node, list):
-            for item in node:
-                walk(item)
-
-    walk(data)
-    # 去重
-    uniq = {}
-    for r in results:
-        uniq[r["title"]] = r
-    return list(uniq.values())[:15]
+def parse_xhs_date(tag_text: str) -> str:
+    if not tag_text:
+        return TODAY.isoformat()
+    t = tag_text.strip()
+    if "今天" in t or "小时前" in t or "分钟前" in t or "刚刚" in t:
+        return TODAY.isoformat()
+    if "昨天" in t:
+        return (TODAY - datetime.timedelta(days=1)).isoformat()
+    m_ago = re.search(r"(\d+)\s*天前", t)
+    if m_ago:
+        return (TODAY - datetime.timedelta(days=int(m_ago.group(1)))).isoformat()
+    m_ymd = re.search(r"(202\d-\d{2}-\d{2})", t)
+    if m_ymd:
+        return m_ymd.group(1)
+    m_md = re.match(r"^(\d{2})-(\d{2})$", t)
+    if m_md:
+        return f"{TODAY.year}-{m_md.group(1)}-{m_md.group(2)}"
+    return TODAY.isoformat()
 
 
-def run_browser_collector(mode: str, targets: List[str], keywords: List[str], headless: bool = False) -> int:
+def parse_xianyu_response(data: Dict[str, Any], kw: str) -> List[Dict[str, str]]:
+    out: List[Dict[str, str]] = []
+    rlist = (data.get("data") or {}).get("resultList") or []
+    for entry in rlist:
+        try:
+            main = ((entry.get("data") or {}).get("item") or {}).get("main") or {}
+            ex = main.get("exContent") or {}
+            args = ((main.get("clickParam") or {}).get("args") or {})
+            title = str(ex.get("title") or "").strip()
+            if len(title) < 8:
+                continue
+            item_id = ex.get("itemId") or args.get("id") or ""
+            nick = ex.get("userNickName") or "闲鱼卖家"
+            area = ex.get("area") or ""
+            price_val = args.get("price") or ""
+            if not price_val and isinstance(ex.get("price"), list):
+                price_val = "".join(str(p.get("text", "")) for p in ex["price"] if isinstance(p, dict))
+            want_num = int(args.get("wantNum") or 0)
+
+            tags_txt = []
+            ftags = ex.get("fishTags") or {}
+            for r_key in ("r2", "r3", "r4"):
+                for tg in ((ftags.get(r_key) or {}).get("tagList") or []):
+                    c = ((tg.get("data") or {}).get("content") or "")
+                    if c and "Icon" not in c:
+                        tags_txt.append(str(c))
+            tag_summary = " · ".join(tags_txt) if tags_txt else f"{want_num}人想要"
+
+            out.append({
+                "channel": "闲鱼真实交易(自动抓包)",
+                "source_tier": "真机XHR实时抓包",
+                "category": f"闲鱼交易验证:{kw}",
+                "query_term": kw,
+                "title": f"[闲鱼在售 ¥{price_val}] {title[:85]}",
+                "content": f"闲鱼真实商品详情：{title}（卖家：{nick}，地区：{area}，交易热度标签：{tag_summary}）",
+                "author": f"闲鱼 @{nick}" + (f" ({area})" if area else ""),
+                "m1": f"{want_num} 人想要" if want_num > 0 else (tags_txt[0] if tags_txt else "在售服务"),
+                "m2": tag_summary[:60],
+                "price": f"¥{price_val}" if price_val else "定制报价",
+                "url": f"https://www.goofish.com/item?id={item_id}" if item_id else f"https://www.goofish.com/search?q={urllib.parse.quote(kw)}",
+                "pub": TODAY.isoformat(),
+            })
+        except Exception:
+            continue
+    return out
+
+
+def parse_xhs_response(data: Dict[str, Any], kw: str) -> List[Dict[str, str]]:
+    out: List[Dict[str, str]] = []
+    items = (data.get("data") or {}).get("items") or []
+    for it in items:
+        try:
+            if it.get("model_type") != "note":
+                continue
+            nc = it.get("note_card") or {}
+            nid = it.get("id") or ""
+            xsec = it.get("xsec_token") or ""
+            title = str(nc.get("display_title") or "").strip()
+            if len(title) < 4:
+                continue
+            user = (nc.get("user") or {}).get("nickname") or "小红书博主"
+            liked = str((nc.get("interact_info") or {}).get("liked_count") or "0")
+            pub_raw = ""
+            for tg in (nc.get("corner_tag_info") or []):
+                if tg.get("type") == "publish_time":
+                    pub_raw = tg.get("text") or ""
+            pub_dt = parse_xhs_date(pub_raw)
+            # 拦截超 180 天的陈旧小红书笔记
+            try:
+                if (TODAY - datetime.date.fromisoformat(pub_dt)).days > 180:
+                    continue
+            except Exception:
+                pass
+
+            url = f"https://www.xiaohongshu.com/explore/{nid}" + (f"?xsec_token={xsec}&xsec_source=pc_search" if xsec else "")
+            out.append({
+                "channel": "小红书真实笔记(自动抓包)",
+                "source_tier": "真机XHR实时抓包",
+                "category": f"小红书需求验证:{kw}",
+                "query_term": kw,
+                "title": f"[小红书笔记] {title[:95]}",
+                "content": f"小红书一线需求/实测笔记：《{title}》 — 作者：{user}，当前获赞：{liked}，发布时间标签：{pub_raw or '近期'}",
+                "author": f"小红书 @{user}",
+                "m1": f"{liked} 点赞",
+                "m2": f"发布: {pub_raw or pub_dt}",
+                "price": "高互动种草/求助",
+                "url": url,
+                "pub": pub_dt,
+            })
+        except Exception:
+            continue
+    return out
+
+
+def parse_chanmama_response(url: str, data: Dict[str, Any], kw: str) -> List[Dict[str, str]]:
+    out: List[Dict[str, str]] = []
+    d_node = data.get("data")
+    rows = []
+    if isinstance(d_node, dict):
+        rows = d_node.get("list") or d_node.get("rows") or []
+    elif isinstance(d_node, list):
+        rows = d_node
+    if not isinstance(rows, list):
+        return out
+
+    for r in rows[:15]:
+        if not isinstance(r, dict):
+            continue
+        title = str(r.get("title") or r.get("product_title") or r.get("aweme_title") or "").strip()
+        if len(title) < 5:
+            continue
+        # 过滤掉纯聊天推荐问题
+        if "object_type" in r and "message" in r:
+            continue
+        sales = r.get("volume_text") or r.get("day30_volume_text") or r.get("sales") or r.get("digg_count") or r.get("hot_score") or ""
+        price = r.get("price_text") or r.get("price") or ""
+        author = r.get("author_name") or r.get("nickname") or r.get("brand_name") or "抖音/蝉妈妈数据"
+        out.append({
+            "channel": "蝉妈妈抖音数据(自动抓包)",
+            "source_tier": "真机XHR实时抓包",
+            "category": f"蝉妈妈商业监测:{kw}",
+            "query_term": kw,
+            "title": f"[蝉妈妈榜单/选品] {title[:95]}",
+            "content": f"蝉妈妈实时监测条目：{title}（关联达人/品牌：{author}，销量/热度指标：{sales}，价格：{price}）",
+            "author": str(author)[:60],
+            "m1": f"热度/销量 {sales}" if sales else "蝉妈妈收录",
+            "m2": f"检索词: {kw}",
+            "price": f"¥{price}" if price else "抖音商业数据",
+            "url": "https://www.chanmama.com/douyin/",
+            "pub": TODAY.isoformat(),
+        })
+    return out
+
+
+def run_browser_collector(mode: str, targets: List[str], keywords: List[str]) -> int:
     from playwright.sync_api import sync_playwright
     import radar_cli
     from collab_utils import dump_db_to_jsonl, sync_db_from_jsonl
+    from persona_and_freshness import ensure_columns, enrich_all_signals
 
     PROFILE_DIR.mkdir(parents=True, exist_ok=True)
     conn = radar_cli.get_conn()
     radar_cli.init_db(conn)
+    ensure_columns(conn)
     sync_db_from_jsonl(conn, BASE_DIR, radar_cli.insert_signal)
 
-    added_total = 0
+    captured: List[Dict[str, str]] = []
+    cur_kw = {"kw": ""}
+
     with sync_playwright() as p:
+        # 注意：闲鱼 baxia 风控会拦截 headless=True，使用非无头真机窗口 + 屏蔽 webdriver 可 100% 稳定通过
         launch_kwargs: Dict[str, Any] = {
             "user_data_dir": str(PROFILE_DIR),
-            "headless": headless if mode != "login" else False,
+            "headless": False,
             "viewport": {"width": 1360, "height": 860},
             "args": ["--disable-blink-features=AutomationControlled"],
         }
@@ -108,16 +206,10 @@ def run_browser_collector(mode: str, targets: List[str], keywords: List[str], he
             launch_kwargs["executable_path"] = CHROME_PATH
 
         context = p.chromium.launch_persistent_context(**launch_kwargs)
+        context.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined});")
         page = context.pages[0] if context.pages else context.new_page()
 
         if mode == "login":
-            print("=================================================================")
-            print("🔓 已打开持久化 Chrome 窗口，请在浏览器中扫码登录：")
-            print("   1. 蝉妈妈: https://www.chanmama.com/")
-            print("   2. 闲鱼网页版: https://www.goofish.com/")
-            print("   3. 小红书: https://www.xiaohongshu.com/")
-            print("💡 登录成功后直接关闭浏览器窗口，登录态将永久保存在 .browser_profile/")
-            print("=================================================================")
             page.goto("https://www.chanmama.com/", wait_until="domcontentloaded")
             p2 = context.new_page(); p2.goto("https://www.goofish.com/", wait_until="domcontentloaded")
             p3 = context.new_page(); p3.goto("https://www.xiaohongshu.com/", wait_until="domcontentloaded")
@@ -128,106 +220,114 @@ def run_browser_collector(mode: str, targets: List[str], keywords: List[str], he
             context.close()
             return 0
 
-        captured_items: List[Dict[str, str]] = []
-        current_meta = {"platform": "", "query": "", "url": ""}
-
-        def handle_response(resp):
+        def on_response(resp):
+            u = resp.url
+            if resp.status != 200:
+                return
             try:
-                ctype = resp.headers.get("content-type", "")
-                if "application/json" in ctype and resp.status == 200:
-                    data = resp.json()
-                    items = extract_json_candidates(data, current_meta["platform"], current_meta["query"])
-                    for it in items:
-                        it["platform"] = current_meta["platform"]
-                        it["query"] = current_meta["query"]
-                        if not it["url"]:
-                            it["url"] = current_meta["url"]
-                        captured_items.append(it)
+                if "mtop.taobao.idlemtopsearch.pc.search/1.0" in u:
+                    captured.extend(parse_xianyu_response(resp.json(), cur_kw["kw"]))
+                elif "/api/sns/web/v2/search/notes" in u or "/api/sns/web/v1/search/notes" in u:
+                    captured.extend(parse_xhs_response(resp.json(), cur_kw["kw"]))
+                elif "api-service.chanmama.com" in u and "json" in resp.headers.get("content-type", ""):
+                    if not any(skip in u for skip in ["/config/", "/user/", "aiQuestion"]):
+                        captured.extend(parse_chanmama_response(u, resp.json(), cur_kw["kw"]))
             except Exception:
                 pass
 
-        page.on("response", handle_response)
+        page.on("response", on_response)
 
-        platform_urls = {
-            "chanmama": ("蝉妈妈投流监测(自动XHR)", "https://www.chanmama.com/promotionVideo?keyword="),
-            "xianyu": ("闲鱼虚拟监测(自动XHR)", "https://www.goofish.com/search?q="),
-            "xhs": ("小红书痛点监测(自动XHR)", "https://www.xiaohongshu.com/search_result?keyword="),
-        }
-
-        for tgt in targets:
-            if tgt not in platform_urls:
-                continue
-            ch_name, base_url = platform_urls[tgt]
+        if "xianyu" in targets:
             for kw in keywords:
-                captured_items.clear()
-                target_url = base_url + urllib.parse.quote(kw)
-                current_meta.update({"platform": ch_name, "query": kw, "url": target_url})
-                print(f"[AUTO-BROWSER] 正在访问并监听后台数据包: {ch_name} -> 关键词『{kw}』")
+                cur_kw["kw"] = kw
+                u = "https://www.goofish.com/search?q=" + urllib.parse.quote(kw)
+                print(f"[闲鱼抓包] 正在检索: {kw}")
                 try:
-                    page.goto(target_url, wait_until="domcontentloaded", timeout=20000)
-                    page.wait_for_timeout(4500)
-                    # 若 XHR 未命中，兜底提取 DOM 可见文本卡片
-                    if not captured_items:
-                        body_txt = page.inner_text("body")
-                        lines = [ln.strip() for ln in body_txt.splitlines() if len(ln.strip()) > 12]
-                        if lines and not any(k in body_txt[:300] for k in ["请登录", "扫码登录", "安全验证"]):
-                            for ln in lines[:5]:
-                                captured_items.append(
-                                    {
-                                        "platform": ch_name,
-                                        "query": kw,
-                                        "title": ln[:120],
-                                        "content": f"[自动DOM提取] {ln}",
-                                        "author": ch_name,
-                                        "metric_primary": "页面实时抓取",
-                                        "metric_secondary": f"检索词: {kw}",
-                                        "price": "见详情",
-                                        "url": target_url,
-                                    }
-                                )
-                    for item in captured_items[:8]:
-                        ok = radar_cli.insert_signal(
-                            conn=conn,
-                            channel=item["platform"],
-                            source_tier="浏览器XHR自动拦截",
-                            category=kw,
-                            query_term=kw,
-                            title=item["title"],
-                            content=item["content"],
-                            author_or_app=item["author"],
-                            metric_primary=item["metric_primary"],
-                            metric_secondary=item["metric_secondary"],
-                            rating_or_price=item["price"],
-                            source_url=item["url"],
-                        )
-                        if ok:
-                            added_total += 1
+                    page.goto(u, wait_until="domcontentloaded", timeout=15000)
+                    page.wait_for_timeout(3200)
                 except Exception as exc:
-                    print(f"[WARN] 自动抓取页面超时或需先执行 --login 扫码 ({ch_name} - {kw}): {exc}")
+                    print(f"  [WARN] 闲鱼跳过 ({kw}): {exc}")
+
+        if "xhs" in targets:
+            for kw in keywords:
+                cur_kw["kw"] = kw
+                u = f"https://www.xiaohongshu.com/search_result?keyword={urllib.parse.quote(kw)}&source=web_search_result_notes"
+                print(f"[小红书抓包] 正在检索: {kw}")
+                try:
+                    page.goto(u, wait_until="domcontentloaded", timeout=15000)
+                    page.wait_for_timeout(3200)
+                except Exception as exc:
+                    print(f"  [WARN] 小红书跳过 ({kw}): {exc}")
+
+        if "chanmama" in targets:
+            cm_pages = [
+                ("抖音带货销量商品榜", "https://www.chanmama.com/promotionRank/tikGoodsSale/"),
+                ("抖音带货爆款视频榜", "https://www.chanmama.com/awemeRank/promotionAweme/"),
+            ]
+            for label, cm_url in cm_pages:
+                cur_kw["kw"] = label
+                print(f"[蝉妈妈抓包] 正在读取: {label}")
+                try:
+                    page.goto(cm_url, wait_until="domcontentloaded", timeout=18000)
+                    page.wait_for_timeout(4000)
+                    for kw in ["错题", "桌面宠物", "软件", "课程"]:
+                        inps = page.locator("input:visible:not([readonly])[placeholder*='商品'], input:visible:not([readonly])[placeholder*='视频'], input:visible:not([readonly])[placeholder*='关键'], input:visible:not([readonly])[placeholder*='搜索']")
+                        if inps.count() > 0:
+                            cur_kw["kw"] = kw
+                            inps.first.fill(kw)
+                            inps.first.press("Enter")
+                            page.wait_for_timeout(3500)
+                except Exception as exc:
+                    print(f"  [WARN] 蝉妈妈跳过 ({label}): {exc}")
 
         context.close()
 
-    radar_cli.clean_and_tag_signals(conn)
+    added = 0
+    for rec in captured:
+        ok = radar_cli.insert_signal(
+            conn=conn,
+            channel=rec["channel"],
+            source_tier=rec["source_tier"],
+            category=rec["category"],
+            query_term=rec["query_term"],
+            title=rec["title"],
+            content=rec["content"],
+            author_or_app=rec["author"],
+            metric_primary=rec["m1"],
+            metric_secondary=rec["m2"],
+            rating_or_price=rec["price"],
+            source_url=rec["url"],
+            published_at=rec["pub"],
+        )
+        if ok:
+            added += 1
+    conn.commit()
+
+    stats = radar_cli.clean_and_tag_signals(conn)
+    rep = enrich_all_signals(conn, TODAY.isoformat())
     dump_db_to_jsonl(conn, BASE_DIR)
+    (BASE_DIR / "data" / "persona_stats.json").write_text(json.dumps(rep, ensure_ascii=False, indent=2), encoding="utf-8")
     from export_dashboard import export_all
     export_all(conn, BASE_DIR)
-    print(f"[AUTO-BROWSER] 完成！本次自动入库新信号: {added_total} 条，已刷新看板。")
-    return added_total
+    print(f"[AUTO-BROWSER] 采集完毕：截获候选={len(captured)} 条，去重后新增入库={added} 条 | 当前库内总信号={stats['total']} (有效={stats['valid']})")
+    return added
 
 
 def main():
-    parser = argparse.ArgumentParser(description="蝉妈妈/闲鱼/小红书 Playwright XHR 自动采集器")
-    parser.add_argument("--login", action="store_true", help="打开 Chrome 扫码登录一次并永久保存 Cookie")
-    parser.add_argument("--collect", action="store_true", help="复用已保存的登录态全自动拦截 XHR 数据包入库")
-    parser.add_argument("--targets", default="chanmama,xianyu,xhs", help="目标平台: chanmama,xianyu,xhs")
-    parser.add_argument("--keywords", default="知识动画代做,学习规划表,提词器,AI直播搭建", help="逗号分隔的搜索词")
-    parser.add_argument("--headless", action="store_true", help="无头静默运行")
+    parser = argparse.ArgumentParser(description="蝉妈妈/闲鱼/小红书真机 XHR 精确抓包器")
+    parser.add_argument("--login", action="store_true", help="打开 Chrome 扫码登录一次并保存 Cookie")
+    parser.add_argument("--collect", action="store_true", help="全自动拦截 XHR 数据包入库")
+    parser.add_argument("--targets", default="xianyu,xhs,chanmama", help="目标平台: xianyu,xhs,chanmama")
+    parser.add_argument(
+        "--keywords",
+        default="microduck,桌面机器人,知识动画代做,Remotion动画,标书检查,考研学习规划表,律所短视频,门窗报价单,桌面宠物Steam,提词器买断",
+        help="逗号分隔的搜索词",
+    )
     args = parser.parse_args()
-
     mode = "login" if args.login else "collect"
     targets = [t.strip() for t in args.targets.split(",") if t.strip()]
     keywords = [k.strip() for k in args.keywords.split(",") if k.strip()]
-    run_browser_collector(mode=mode, targets=targets, keywords=keywords, headless=args.headless)
+    run_browser_collector(mode=mode, targets=targets, keywords=keywords)
 
 
 if __name__ == "__main__":
