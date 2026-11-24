@@ -1,8 +1,8 @@
 {
   "ref_date": "2026-11-24",
   "freshness_breakdown": {
-    "7d_hot": 596,
-    "30d_active": 173,
+    "7d_hot": 621,
+    "30d_active": 174,
     "90d_recent": 250,
     "180d_halfyear": 237,
     "stale_archive": 49,
@@ -11,8 +11,8 @@
   "audience_personas": [
     {
       "audience": "电商与跨境卖家",
-      "total": 267,
-      "fresh_30d": 216,
+      "total": 268,
+      "fresh_30d": 217,
       "stale_cnt": 8,
       "pay_habit": "按 ROI 算账，凡能防违规封店、提效测款均爽快付费",
       "price_band": "39~299 元/月 订阅制",
@@ -20,8 +20,8 @@
     },
     {
       "audience": "年轻玩家与桌宠受众",
-      "total": 157,
-      "fresh_30d": 110,
+      "total": 163,
+      "fresh_30d": 116,
       "stale_cnt": 6,
       "pay_habit": "为情绪陪伴、摸鱼解压与捏 OC 外观冲动付费，适合全球买断+DLC",
       "price_band": "18~29 元 Steam 本体 + 6~12 元 DLC",
@@ -29,8 +29,8 @@
     },
     {
       "audience": "B端企业与招投标专员",
-      "total": 184,
-      "fresh_30d": 108,
+      "total": 187,
+      "fresh_30d": 111,
       "stale_cnt": 5,
       "pay_habit": "防损失驱动（防废标/防泄密），客单价高且年卡续费稳，重视本地隐私",
       "price_band": "49 元/次 或 699~1980 元/年",
@@ -47,12 +47,21 @@
     },
     {
       "audience": "视频博主与内容创作者",
-      "total": 215,
-      "fresh_30d": 78,
+      "total": 217,
+      "fresh_30d": 80,
       "stale_cnt": 12,
       "pay_habit": "高频生产刚需，极其反感流氓自动续费，偏好买断或按量计费",
       "price_band": "29.9~69 元 买断或月卡",
       "channels": "B站教程评论区、小红书剪辑/口播痛点帖"
+    },
+    {
+      "audience": "极客与AI/硬件开发者",
+      "total": 89,
+      "fresh_30d": 53,
+      "stale_cnt": 0,
+      "pay_habit": "愿为免配环境整合包、校准固件与节省折腾时间买单",
+      "price_band": "99~399 元 镜像/买断包",
+      "channels": "GitHub、B站硬核科技区、V2EX、复刻交流群"
     },
     {
       "audience": "线下门店与个体商户",
@@ -71,15 +80,6 @@
       "pay_habit": "获客与续费导向（成一单赚数千上万），愿为能装门面逼单的工具付年费",
       "price_band": "199~299 元/月 或 299~999 元/年",
       "channels": "小红书低赞专业博主私信、教培校长/督导群"
-    },
-    {
-      "audience": "极客与AI/硬件开发者",
-      "total": 75,
-      "fresh_30d": 39,
-      "stale_cnt": 0,
-      "pay_habit": "愿为免配环境整合包、校准固件与节省折腾时间买单",
-      "price_band": "99~399 元 镜像/买断包",
-      "channels": "GitHub、B站硬核科技区、V2EX、复刻交流群"
     },
     {
       "audience": "大众效率与副业人群",
