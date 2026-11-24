@@ -1,4 +1,18 @@
 
+function buildCollectCmd() {
+  const kws = (document.getElementById("cgKw")?.value || "microduck,桌面宠物,标书检查").trim();
+  const tgs = [];
+  if (document.getElementById("cgXy")?.checked) tgs.push("xianyu");
+  if (document.getElementById("cgXhs")?.checked) tgs.push("xhs");
+  if (document.getElementById("cgCm")?.checked) tgs.push("chanmama");
+  const tgStr = tgs.length ? tgs.join(",") : "xianyu,xhs";
+  const out = document.getElementById("cgOut");
+  if (out) {
+    out.textContent = `python3 scripts/auto_browser_collector.py --collect --targets ${tgStr} --keywords "${kws}" && python3 scripts/sync_github.py`;
+  }
+}
+
+
 function freshBadge(tier, pubDate) {
   const dt = esc(pubDate || "未知");
   if (tier === "7d_hot") return `<span class="fresh-badge fresh-7d">近7天 · ${dt}</span>`;
@@ -441,6 +455,40 @@ function renderWhitepaper() {
   `).join('');
 
   document.getElementById('tab-whitepaper').innerHTML = `
+    <div class="inspector" style="margin-bottom:18px;">
+      <div class="ins-head" style="margin-bottom:14px;padding-bottom:12px;">
+        <div>
+          <span class="sec-label">团队成员通用采集入口（兼容 macOS / Windows / Linux）</span>
+          <h2 class="ins-title">其他成员如何在自己电脑上抓数据并安全合入团队总库</h2>
+        </div>
+        <span class="pill pill-s">自动去重合并 · 互不覆盖</span>
+      </div>
+      <div class="grid-3" style="margin-bottom:16px;">
+        <div class="card-cell">
+          <span class="cell-k">方式一：零命令双击启动（推荐运营/市场同事）</span>
+          <div class="cell-v">克隆仓库后，Mac 用户直接双击根目录 <code>Mac一键采集向导.command</code>，Windows 用户双击 <code>Windows一键采集向导.bat</code>，按数字菜单 [1]~[5] 输入关键词即可完成扫码、抓包与合并上传。</div>
+        </div>
+        <div class="card-cell">
+          <span class="cell-k">方式二：修改共享词库 (config/watch_keywords.json)</span>
+          <div class="cell-v">无需改 Python 代码，任何成员直接在 <code>config/watch_keywords.json</code> 中添加要长期监控的赛道词，所有采集脚本自动读取。</div>
+        </div>
+        <div class="card-cell">
+          <span class="cell-k">多人数据防覆盖保障</span>
+          <div class="cell-v">各自扫码的 Cookie 仅保存在本机 <code>.browser_profile/</code>（不上传 Git）。执行 <code>sync_github.py</code> 时会先自动拉取远端最新信号做无损并集合并，不会冲掉队友抓的数据。</div>
+        </div>
+      </div>
+      <div class="card-cell">
+        <span class="cell-k" style="color:var(--text);">交互式采集命令生成器（勾选平台并输入你想调研的词，复制到仓库终端运行即可抓取并同步全队）</span>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin:10px 0;">
+          <input id="cgKw" style="max-width:380px;" value="microduck,桌面宠物,装修报价单审核" oninput="buildCollectCmd()" placeholder="多个关键词用逗号隔开">
+          <label style="display:inline-flex;align-items:center;gap:5px;font-size:12.5px;width:auto;"><input type="checkbox" id="cgXy" checked onchange="buildCollectCmd()" style="width:auto;"> 闲鱼在售价格与想要数</label>
+          <label style="display:inline-flex;align-items:center;gap:5px;font-size:12.5px;width:auto;"><input type="checkbox" id="cgXhs" checked onchange="buildCollectCmd()" style="width:auto;"> 小红书高赞笔记</label>
+          <label style="display:inline-flex;align-items:center;gap:5px;font-size:12.5px;width:auto;"><input type="checkbox" id="cgCm" onchange="buildCollectCmd()" style="width:auto;"> 蝉妈妈抖音榜</label>
+        </div>
+        <div style="font-size:11.5px;color:var(--text-muted);margin-bottom:6px;">首次运行前先执行一次 <code>python3 scripts/auto_browser_collector.py --login</code> 扫码保存你自己的登录态：</div>
+        <code id="cgOut" style="display:block;padding:10px;white-space:pre-wrap;word-break:break-all;">python3 scripts/auto_browser_collector.py --collect --targets xianyu,xhs --keywords "microduck,桌面宠物,装修报价单审核" && python3 scripts/sync_github.py</code>
+      </div>
+    </div>
     <div class="inspector">
       <span class="sec-label">数据采集透明说明</span>
       ${chHtml}

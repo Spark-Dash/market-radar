@@ -21,7 +21,46 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
 BASE_DIR = pathlib.Path(__file__).resolve().parent.parent
 PROFILE_DIR = BASE_DIR / ".browser_profile"
-CHROME_PATH = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+import os
+import platform
+
+def find_system_browser() -> str:
+    """跨平台自动探测本机已安装的 Chrome 或 Edge 浏览器路径（兼容 macOS / Windows / Linux）"""
+    env_p = os.environ.get("MR_BROWSER_PATH", "").strip()
+    if env_p and pathlib.Path(env_p).exists():
+        return env_p
+    sys_name = platform.system()
+    candidates = []
+    if sys_name == "Darwin":
+        candidates = [
+            "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+            "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
+            str(pathlib.Path.home() / "Applications/Google Chrome.app/Contents/MacOS/Google Chrome"),
+        ]
+    elif sys_name == "Windows":
+        for root in [os.environ.get("PROGRAMFILES", ""), os.environ.get("PROGRAMFILES(X86)", ""), os.environ.get("LOCALAPPDATA", "")]:
+            if root:
+                candidates.append(str(pathlib.Path(root) / "Google/Chrome/Application/chrome.exe"))
+                candidates.append(str(pathlib.Path(root) / "Microsoft/Edge/Application/msedge.exe"))
+    else:
+        candidates = ["/usr/bin/google-chrome", "/usr/bin/google-chrome-stable", "/usr/bin/chromium", "/usr/bin/chromium-browser", "/usr/bin/microsoft-edge"]
+    for c in candidates:
+        if pathlib.Path(c).exists():
+            return c
+    return ""
+
+def load_default_keywords() -> str:
+    cfg = BASE_DIR / "config" / "watch_keywords.json"
+    if cfg.exists():
+        try:
+            kws = json.loads(cfg.read_text(encoding="utf-8")).get("browser_xhr_keywords", [])
+            if kws:
+                return ",".join(kws)
+        except Exception:
+            pass
+    return "microduck,桌面机器人,知识动画代做,标书检查,考研学习规划表"
+
+CHROME_PATH = find_system_browser()
 TODAY = datetime.date.today()
 
 
@@ -180,7 +219,10 @@ def parse_chanmama_response(url: str, data: Dict[str, Any], kw: str) -> List[Dic
 
 
 def run_browser_collector(mode: str, targets: List[str], keywords: List[str]) -> int:
-    from playwright.sync_api import sync_playwright
+    try:
+        from playwright.sync_api import sync_playwright
+    except ImportError:
+        raise SystemExit("未检测到 playwright 库，请先在终端执行一次: pip3 install playwright")
     import radar_cli
     from collab_utils import dump_db_to_jsonl, sync_db_from_jsonl
     from persona_and_freshness import ensure_columns, enrich_all_signals
@@ -202,7 +244,7 @@ def run_browser_collector(mode: str, targets: List[str], keywords: List[str]) ->
             "viewport": {"width": 1360, "height": 860},
             "args": ["--disable-blink-features=AutomationControlled"],
         }
-        if pathlib.Path(CHROME_PATH).exists():
+        if CHROME_PATH and pathlib.Path(CHROME_PATH).exists():
             launch_kwargs["executable_path"] = CHROME_PATH
 
         context = p.chromium.launch_persistent_context(**launch_kwargs)
@@ -320,7 +362,7 @@ def main():
     parser.add_argument("--targets", default="xianyu,xhs,chanmama", help="目标平台: xianyu,xhs,chanmama")
     parser.add_argument(
         "--keywords",
-        default="microduck,桌面机器人,知识动画代做,Remotion动画,标书检查,考研学习规划表,律所短视频,门窗报价单,桌面宠物Steam,提词器买断",
+        default=load_default_keywords(),
         help="逗号分隔的搜索词",
     )
     args = parser.parse_args()
