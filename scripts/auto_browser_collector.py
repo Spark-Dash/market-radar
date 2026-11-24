@@ -14,7 +14,9 @@ import json
 import pathlib
 import re
 import sqlite3
+import sys
 import time
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import urllib.parse
 from typing import Any, Dict, List
 
@@ -117,6 +119,8 @@ def run_browser_collector(mode: str, targets: List[str], keywords: List[str], he
             print("💡 登录成功后直接关闭浏览器窗口，登录态将永久保存在 .browser_profile/")
             print("=================================================================")
             page.goto("https://www.chanmama.com/", wait_until="domcontentloaded")
+            p2 = context.new_page(); p2.goto("https://www.goofish.com/", wait_until="domcontentloaded")
+            p3 = context.new_page(); p3.goto("https://www.xiaohongshu.com/", wait_until="domcontentloaded")
             try:
                 page.wait_for_event("close", timeout=300000)
             except Exception:

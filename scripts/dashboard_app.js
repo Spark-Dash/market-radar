@@ -15,6 +15,7 @@ function jumpToAudienceSignals(audName) {
   if (sigBtn) switchTab("tab-signals", sigBtn);
   const audSel = document.getElementById("audSelect");
   const timeSel = document.getElementById("timeSelect");
+  SIG_PAGE = 1;
   if (audSel) audSel.value = audName;
   if (timeSel) timeSel.value = "active180";
   filterRows();
@@ -227,17 +228,73 @@ function renderDetailCard(p, idx) {
   `;
 }
 
+let SIG_PAGE = 1;
+const SIG_PAGE_SIZE = 50;
+let FILTERED_SIGS = [];
+
 function renderSignals() {
   const sigs = DATA.signals || [];
   document.getElementById('lblSigCnt').innerText = sigs.filter(s => !s.is_noise && s.freshness_tier !== 'stale_archive').length;
-  const rows = sigs.map(s => {
+  const allAuds = [...new Set(sigs.map(s => cleanText(s.audience_tag)).filter(Boolean))];
+  const allChs = [...new Set(sigs.map(s => cleanText(s.channel)).filter(Boolean))];
+
+  document.getElementById('tab-signals').innerHTML = `
+    <div class="signal-controls" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px;">
+      <input id="qInput" style="max-width:260px;" aria-label="搜索信号" placeholder="搜索编号(#12)、标题、原文或人群..." oninput="SIG_PAGE=1;filterRows()">
+      <select id="timeSelect" style="max-width:205px;" aria-label="按发布时效筛选" onchange="SIG_PAGE=1;filterRows()">
+        <option value="active180">当下有效信号 (剔除超半年旧帖)</option>
+        <option value="7d">仅看近 7 天新发布</option>
+        <option value="30d">仅看近 30 天内发布</option>
+        <option value="all_time">全部时间 (含早期历史旧帖)</option>
+        <option value="stale_only">仅看被隔离的超半年旧帖</option>
+      </select>
+      <select id="audSelect" style="max-width:215px;" aria-label="按买单人群筛选" onchange="SIG_PAGE=1;filterRows()">
+        <option value="">全部买单人群 (${allAuds.length}类)</option>
+        ${allAuds.map(a => `<option value="${esc(a)}">${esc(a)}</option>`).join('')}
+      </select>
+      <select id="chSelect" style="max-width:190px;" aria-label="按渠道筛选" onchange="SIG_PAGE=1;filterRows()">
+        <option value="">全部渠道 (${allChs.length}个)</option>
+        ${allChs.map(ch => `<option value="${esc(ch)}">${esc(ch)}</option>`).join('')}
+      </select>
+      <select id="noiseSelect" style="max-width:120px;" aria-label="按有效性筛选" onchange="SIG_PAGE=1;filterRows()">
+        <option value="valid">有效信号</option>
+        <option value="all">含噪音</option>
+      </select>
+      <output id="signalCount" aria-live="polite" style="font-size:12.5px;color:var(--text-muted);"></output>
+    </div>
+    <div class="table-wrap" role="region" aria-label="信号明细" tabindex="0">
+      <table>
+        <thead><tr><th width="130">编号 / 源站发布日</th><th width="185">渠道 / 买单人群画像</th><th width="160">来源对象</th><th>标题与本地保存的正文摘要</th><th width="155">量化指标</th><th width="95">操作</th></tr></thead>
+        <tbody id="sigTbody"></tbody>
+      </table>
+    </div>
+    <div id="sigPager" style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;"></div>
+  `;
+  filterRows();
+}
+
+function changeSigPage(delta) {
+  const totalPages = Math.max(1, Math.ceil(FILTERED_SIGS.length / SIG_PAGE_SIZE));
+  SIG_PAGE = Math.max(1, Math.min(totalPages, SIG_PAGE + delta));
+  renderSigPage();
+  document.getElementById('tab-signals')?.scrollIntoView({block:'start'});
+}
+
+function renderSigPage() {
+  const total = FILTERED_SIGS.length;
+  const totalPages = Math.max(1, Math.ceil(total / SIG_PAGE_SIZE));
+  if (SIG_PAGE > totalPages) SIG_PAGE = totalPages;
+  const start = (SIG_PAGE - 1) * SIG_PAGE_SIZE;
+  const slice = FILTERED_SIGS.slice(start, start + SIG_PAGE_SIZE);
+
+  const rowsHtml = slice.map(s => {
     const source = sourceLink(s.source_url);
     const pubDate = s.published_at || (s.collected_at||'').slice(0,10);
     const colDate = (s.collected_at||'').slice(0,10);
     const fTier = s.freshness_tier || '30d_active';
     const aud = s.audience_tag || '未分类人群';
     return `
-      <tr class="sig-row" data-ch="${esc(s.channel)}" data-aud="${esc(aud)}" data-fresh="${esc(fTier)}" data-noise="${s.is_noise ? 1 : 0}" data-q="${esc([s.id, s.title, s.content, s.author_or_app, aud].join(' '))}">
+      <tr class="sig-row">
         <td style="font-family:monospace;color:var(--text-muted);">
           <b>#${s.id}</b><br>
           ${freshBadge(fTier, pubDate)}<br>
@@ -258,41 +315,20 @@ function renderSignals() {
     `;
   }).join('');
 
-  const allAuds = [...new Set(sigs.map(s => cleanText(s.audience_tag)).filter(Boolean))];
-  const allChs = [...new Set(sigs.map(s => cleanText(s.channel)).filter(Boolean))];
-
-  document.getElementById('tab-signals').innerHTML = `
-    <div class="signal-controls" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px;">
-      <input id="qInput" style="max-width:280px;" aria-label="搜索信号" placeholder="搜索编号、标题、原文或人群..." oninput="filterRows()">
-      <select id="timeSelect" style="max-width:210px;" aria-label="按发布时效筛选" onchange="filterRows()">
-        <option value="active180">当下有效信号 (剔除超半年旧帖)</option>
-        <option value="7d">仅看近 7 天新发布</option>
-        <option value="30d">仅看近 30 天内发布</option>
-        <option value="all_time">全部时间 (含早期历史旧帖)</option>
-        <option value="stale_only">仅看被隔离的超半年旧帖</option>
-      </select>
-      <select id="audSelect" style="max-width:220px;" aria-label="按买单人群筛选" onchange="filterRows()">
-        <option value="">全部买单人群 (${allAuds.length}类)</option>
-        ${allAuds.map(a => `<option value="${esc(a)}">${esc(a)}</option>`).join('')}
-      </select>
-      <select id="chSelect" style="max-width:190px;" aria-label="按渠道筛选" onchange="filterRows()">
-        <option value="">全部渠道</option>
-        ${allChs.map(ch => `<option value="${esc(ch)}">${esc(ch)}</option>`).join('')}
-      </select>
-      <select id="noiseSelect" style="max-width:135px;" aria-label="按有效性筛选" onchange="filterRows()">
-        <option value="valid">有效信号</option>
-        <option value="all">含噪音</option>
-      </select>
-      <output id="signalCount" aria-live="polite" style="font-size:12.5px;color:var(--text-muted);"></output>
-    </div>
-    <div class="table-wrap" role="region" aria-label="信号明细" tabindex="0">
-      <table>
-        <thead><tr><th width="130">编号 / 源站发布日</th><th width="185">渠道 / 买单人群画像</th><th width="160">来源对象</th><th>标题与本地保存的正文摘要</th><th width="155">量化指标</th><th width="95">操作</th></tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </div>
-  `;
-  filterRows();
+  const tbody = document.getElementById('sigTbody');
+  if (tbody) tbody.innerHTML = rowsHtml || '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:24px;">无匹配信号记录</td></tr>';
+  const out = document.getElementById('signalCount');
+  if (out) out.textContent = `匹配 ${total} 条 · 第 ${SIG_PAGE}/${totalPages} 页`;
+  const pager = document.getElementById('sigPager');
+  if (pager) {
+    pager.innerHTML = `
+      <span style="font-size:12px;color:var(--text-muted);">每页显示 ${SIG_PAGE_SIZE} 条（当前显示第 ${total ? start+1 : 0} ~ ${Math.min(start+SIG_PAGE_SIZE, total)} 条，共 ${total} 条）</span>
+      <div style="display:flex;gap:8px;">
+        <button class="btn" ${SIG_PAGE<=1 ? 'disabled' : ''} onclick="changeSigPage(-1)">← 上一页</button>
+        <button class="btn" ${SIG_PAGE>=totalPages ? 'disabled' : ''} onclick="changeSigPage(1)">下一页 →</button>
+      </div>
+    `;
+  }
 }
 
 function renderSubmitTab() {
@@ -592,31 +628,33 @@ function switchTab(id, btn) {
 }
 
 function filterRows() {
+  const sigs = DATA.signals || [];
   const q = (document.getElementById('qInput')?.value || '').trim().toLowerCase();
   const id = q.match(/^#(\d+)$/)?.[1];
   const ch = document.getElementById('chSelect')?.value || '';
   const aud = document.getElementById('audSelect')?.value || '';
   const tMode = document.getElementById('timeSelect')?.value || 'active180';
   const noise = document.getElementById('noiseSelect')?.value || 'valid';
-  let count = 0;
-  document.querySelectorAll('.sig-row').forEach(r => {
-    const f = r.dataset.fresh;
+
+  FILTERED_SIGS = sigs.filter(s => {
+    const f = s.freshness_tier || '30d_active';
     let timeOk = true;
     if (tMode === 'active180') timeOk = (f !== 'stale_archive');
     else if (tMode === '7d') timeOk = (f === '7d_hot');
     else if (tMode === '30d') timeOk = (f === '7d_hot' || f === '30d_active');
     else if (tMode === 'stale_only') timeOk = (f === 'stale_archive');
-
-    const match = timeOk
-      && (!q || (id ? r.dataset.q.split(' ')[0] === id : r.dataset.q.toLowerCase().includes(q)))
-      && (!ch || r.dataset.ch === ch)
-      && (!aud || r.dataset.aud === aud)
-      && (noise === 'all' || r.dataset.noise === (noise === 'noise' ? '1' : '0'));
-    r.hidden = !match;
-    if (match) count++;
+    if (!timeOk) return false;
+    if (noise !== 'all' && Boolean(s.is_noise) !== (noise === 'noise')) return false;
+    if (ch && cleanText(s.channel) !== ch) return false;
+    if (aud && cleanText(s.audience_tag) !== aud) return false;
+    if (q) {
+      if (id) return String(s.id) === id;
+      const hay = `${s.id} ${s.title} ${s.content} ${s.author_or_app} ${s.audience_tag}`.toLowerCase();
+      return hay.includes(q);
+    }
+    return true;
   });
-  const out = document.getElementById('signalCount');
-  if (out) out.textContent = `显示 ${count} 条`;
+  renderSigPage();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
