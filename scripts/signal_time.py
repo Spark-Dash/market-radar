@@ -4,6 +4,7 @@ from datetime import date, datetime, timedelta, timezone
 
 
 MARKET_TIMEZONE = timezone(timedelta(hours=8))
+LEGACY_DATE_SOURCE = "legacy_archive_date"
 
 
 def observed_now() -> str:

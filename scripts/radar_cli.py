@@ -112,6 +112,8 @@ def init_db(conn: sqlite3.Connection) -> None:
         """
     )
     from persona_and_freshness import ensure_columns
+    from user_comments import init_comments
+    init_comments(conn)
     ensure_columns(conn)
 
 
@@ -418,7 +420,9 @@ def collect_wechat_sogou(conn: sqlite3.Connection, custom_queries: Optional[List
 
 
 def ingest_inbox_csv(conn: sqlite3.Connection, inbox_dir: pathlib.Path = INBOX_DIR) -> int:
-    """导入本地 inbox/ 目录下的蝉妈妈、闲鱼、小红书导出 CSV"""
+    """导入既有信号表和显式标记为 comment 的评论行。"""
+    from user_comments import save_comment
+
     added = 0
     if not inbox_dir.exists():
         return 0
@@ -427,6 +431,13 @@ def ingest_inbox_csv(conn: sqlite3.Connection, inbox_dir: pathlib.Path = INBOX_D
             with csv_file.open("r", encoding="utf-8-sig") as f:
                 reader = csv.DictReader(f)
                 for row in reader:
+                    if (row.get("record_type") or "").strip().lower() == "comment":
+                        try:
+                            row["comment_time_source"] = row.get("comment_time_source") or csv_file.name
+                            added += save_comment(conn, row)
+                        except ValueError as exc:
+                            print(f"[WARN] 跳过评论 ({csv_file.name}:{reader.line_num}): {exc}")
+                        continue
                     ok = insert_signal(
                         conn=conn,
                         channel=row.get("channel", "本地CSV导入"),
@@ -572,7 +583,7 @@ def evaluate_opportunities(conn: sqlite3.Connection) -> int:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Market Radar CLI (多渠道采集 + AI锐评评估 + 团队人脉提报)")
-    parser.add_argument("action", choices=["run-all", "collect", "clean", "evaluate", "export", "submit-idea"], default="run-all", nargs="?")
+    parser.add_argument("action", choices=["run-all", "collect", "import-csv", "clean", "evaluate", "export", "submit-idea"], default="run-all", nargs="?")
     parser.add_argument("--title", default="", help="人脉新方向标题")
     parser.add_argument("--proposer", default="团队成员", help="提报人姓名/人脉来源")
     parser.add_argument("--what", default="", help="一句话说明具体做什么产品")
@@ -581,12 +592,17 @@ def main() -> None:
     parser.add_argument("--channel", default="人脉私域+小红书/闲鱼", help="首批客户获客渠道")
     parser.add_argument("--mvp-days", type=int, default=7, help="预计最小可用产品研发天数")
     parser.add_argument("--unpaid", action="store_true", help="若仅有口头意向尚无付费验证则加上此参数")
+    parser.add_argument("--with-comments", action="store_true", help="本地导出信号、评论和标签到 .market-radar")
     args = parser.parse_args()
+    if args.with_comments and args.action != "export":
+        parser.error("--with-comments 仅适用于 export")
 
     conn = get_conn()
     init_db(conn)
     from collab_utils import sync_db_from_jsonl, dump_db_to_jsonl, submit_custom_idea
+    from user_comments import archive_comments, restore_comments
     sync_db_from_jsonl(conn, BASE_WORKSPACE, insert_signal)
+    restore_comments(conn, BASE_WORKSPACE)
 
     if args.action == "submit-idea":
         if not args.title or not args.what:
@@ -609,8 +625,17 @@ def main() -> None:
         print(f"[EXPORT] 看板已自动刷新: {HTML_PATH}")
         return
 
+    if args.action == "import-csv":
+        c_csv = ingest_inbox_csv(conn)
+        archive_comments(conn, BASE_WORKSPACE)
+        clean_and_tag_signals(conn)
+        dump_db_to_jsonl(conn, BASE_WORKSPACE)
+        print(f"[IMPORT-CSV] 新增信号与评论: {c_csv}")
+        return
+
     if args.action in ("run-all", "collect"):
         c_csv = ingest_inbox_csv(conn)
+        archive_comments(conn, BASE_WORKSPACE)
         c_app = collect_appstore(conn)
         c_bili = collect_bilibili(conn)
         c_wx = collect_wechat_sogou(conn)
@@ -619,6 +644,7 @@ def main() -> None:
     if args.action in ("run-all", "clean"):
         stats = clean_and_tag_signals(conn)
         dump_db_to_jsonl(conn, BASE_WORKSPACE)
+        archive_comments(conn, BASE_WORKSPACE)
         print(f"[CLEAN & ARCHIVE] 信号清洗与历史归档完成: 总计={stats['total']}, 有效={stats['valid']}, 拦截噪音={stats['noise']}")
 
     if args.action in ("run-all", "evaluate"):
@@ -627,8 +653,10 @@ def main() -> None:
 
     if args.action in ("run-all", "export"):
         from export_dashboard import export_all
-        export_all(conn, BASE_WORKSPACE)
-        print(f"[EXPORT] 交互式看板已生成: {HTML_PATH}")
+        page = export_all(conn, BASE_WORKSPACE, with_comments=args.with_comments)
+        print(f"[EXPORT] 交互式看板已生成: {page}")
+        if args.with_comments:
+            print(f"[EXPORT] 本地 CSV: {page.parent / 'exports/signals_full.csv'}")
 
 
 if __name__ == "__main__":

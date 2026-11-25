@@ -165,6 +165,17 @@ python3 scripts/sync_github.py --check
 python3 scripts/sync_github.py
 ```
 
+### 4.6 本地导入评论和核对用户标签
+
+将获准使用的评论表保存为 `inbox/comments_*.csv`（Git 忽略）。评论行包含 `record_type=comment`、`channel`、平台内唯一的 `comment_id`、`parent_url` 和 `content`。可附 `commented_at`（ISO 日期或带时区时间）、`source_url`、`author_profile_url`。已有的用户资料可填 `age`、`ip_location`（平台展示的属地）、`occupation`、`interests` 以及共同的 `profile_source`，也可为单个字段填对应的 `<字段>_source`。
+
+```bash
+python scripts/radar_cli.py import-csv
+python scripts/radar_cli.py export --with-comments
+```
+
+在 `.market-radar/index.html` 的信号库查看评论、标签和覆盖率，在 `.market-radar/exports/signals_full.csv` 核对标签来源。评论和这些导出都保存在 Git 忽略的本地目录，正常发布页仍走原有入口。
+
 ---
 
 ## 五、团队接力开发指南（如何扩展系统）

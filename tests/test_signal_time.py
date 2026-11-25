@@ -11,7 +11,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "scripts"))
 import radar_cli
 from collab_utils import dump_db_to_jsonl, sync_db_from_jsonl
 from persona_and_freshness import compute_freshness, enrich_all_signals
-from signal_time import source_day, source_time
+from signal_time import LEGACY_DATE_SOURCE, source_day, source_time
 
 
 class SignalTimeTest(unittest.TestCase):
@@ -83,9 +83,56 @@ class SignalTimeTest(unittest.TestCase):
             for field in ("content", "published_at", "collected_at", "first_seen", "last_seen", "source_url"):
                 self.assertEqual(rows[42][field], old[field])
             self.assertEqual(rows[42]["observed_at"], "")
+            self.assertEqual(rows[42]["source_published_at"], "")
+            self.assertEqual(rows[42]["published_time_source"], LEGACY_DATE_SOURCE)
             self.assertEqual(rows[71]["source_published_at"], new["source_published_at"])
             self.assertEqual(rows[71]["published_time_precision"], "timestamp")
             self.assertEqual(rows[71]["observed_at"], new["observed_at"])
+
+    def test_archive_date_for_previously_restored_signal_yields_to_source_time(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = pathlib.Path(folder)
+            archive = root / "data/signals/signals_master.jsonl"
+            archive.parent.mkdir(parents=True)
+            legacy = {
+                "id": 42, "channel": "测试", "title": "归档信号", "published_at": "2026-11-20",
+                "collected_at": "2026-11-20 07:30:00",
+            }
+            unverified = {
+                **legacy, "id": 43, "title": "新采时间未知", "observed_at": "2026-11-24T08:00:00Z",
+            }
+            conn = radar_cli.get_conn(root / "radar.db")
+            try:
+                radar_cli.init_db(conn)
+                conn.execute(
+                    """INSERT INTO raw_signals (id, channel, source_tier, category,
+                       query_term, title, content, collected_at, published_at)
+                       VALUES (42, '测试', '', '', '', '归档信号', '', ?, ?)""",
+                    (legacy["collected_at"], legacy["published_at"]),
+                )
+                archive.write_text("\n".join(map(json.dumps, (legacy, unverified))) + "\n", encoding="utf-8")
+                self.assertEqual(sync_db_from_jsonl(conn, root, radar_cli.insert_signal), 1)
+                enrich_all_signals(conn, "2026-11-25")
+                self.assertEqual(
+                    [tuple(row) for row in conn.execute(
+                        "SELECT id, published_time_source, freshness_tier FROM raw_signals ORDER BY id"
+                    )],
+                    [(42, LEGACY_DATE_SOURCE, "7d_hot"), (43, "", "recent_unverified")],
+                )
+                verified = {
+                    **legacy,
+                    "source_published_at": "2026-10-29T12:00:00+00:00",
+                    "published_time_source": "源站实测",
+                }
+                archive.write_text("\n".join(map(json.dumps, (verified, legacy))) + "\n", encoding="utf-8")
+                self.assertEqual(sync_db_from_jsonl(conn, root, radar_cli.insert_signal), 0)
+                enrich_all_signals(conn, "2026-11-25")
+                row = conn.execute("SELECT * FROM raw_signals WHERE id=42").fetchone()
+                self.assertEqual(row["published_at"], legacy["published_at"])
+                self.assertEqual(row["published_time_source"], "源站实测")
+                self.assertEqual(row["freshness_tier"], "30d_active")
+            finally:
+                conn.close()
 
     def test_existing_rows_restore_missing_dates_before_rearchiving(self):
         folder = tempfile.TemporaryDirectory()

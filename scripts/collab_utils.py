@@ -9,7 +9,7 @@ import sqlite3
 import tempfile
 from contextlib import contextmanager
 
-from signal_time import market_today
+from signal_time import LEGACY_DATE_SOURCE, market_today, source_time
 
 
 def now_str() -> str:
@@ -48,6 +48,19 @@ def restore_signal(conn, r, insert_fn) -> bool:
         signal_id=signal_id if type(signal_id) is int and signal_id > 0 else None,
         **values,
     )
+    if not values["source_published_at"] and (
+        not values["observed_at"] or values["published_time_source"] == LEGACY_DATE_SOURCE
+    ):
+        legacy_day, precision = source_time(values["published_at"])
+        if precision == "date":
+            conn.execute(
+                """UPDATE raw_signals SET published_time_source=?
+                   WHERE channel=? AND title=? AND author_or_app=? AND published_at=?
+                     AND COALESCE(source_published_at, '')=''
+                     AND COALESCE(published_time_source, '')=''""",
+                (LEGACY_DATE_SOURCE, values["channel"], values["title"][:200],
+                 values["author_or_app"][:100], legacy_day),
+            )
     if added:
         conn.execute(
             """UPDATE raw_signals SET pain_tags=?, is_noise=?, noise_reason=?,

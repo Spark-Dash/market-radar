@@ -16,7 +16,7 @@ import ssl
 import urllib.request
 from typing import Any, Dict, List, Tuple
 
-from signal_time import TIME_COLUMNS, market_today, source_day
+from signal_time import LEGACY_DATE_SOURCE, TIME_COLUMNS, market_today, source_day
 
 SSL_CTX = ssl._create_unverified_context()
 UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
@@ -193,7 +193,10 @@ def enrich_all_signals(conn: sqlite3.Connection, ref_date_str: str = "") -> Dict
     aud_stats: Dict[str, Dict[str, Any]] = {}
 
     for r in rows:
-        f_tier, _, is_stale = compute_freshness(source_day(r["source_published_at"]), ref_date)
+        published = r["source_published_at"]
+        if not published and r["published_time_source"] == LEGACY_DATE_SOURCE:
+            published = r["published_at"]
+        f_tier, _, is_stale = compute_freshness(source_day(published), ref_date)
         seg, p_note = classify_audience(r["channel"], r["category"], r["query_term"], r["title"], r["content"])
 
         conn.execute(
