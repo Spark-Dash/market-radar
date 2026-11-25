@@ -44,6 +44,7 @@ def comment_signals(conn):
             "content": comment["content"],
             "author_or_app": comment["author_or_app"],
             "author_profile_url": comment["author_profile_url"],
+            "metric_primary": comment["source_metric"],
             "source_published_at": comment["commented_at"],
             "published_time_precision": comment["comment_time_precision"],
             "published_time_source": comment["comment_time_source"],

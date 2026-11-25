@@ -387,7 +387,7 @@ function renderSigPage() {
         <td><strong style="color:var(--text);font-weight:500;">${esc(s.author_or_app)}</strong><br><small style="color:var(--text-muted)">${esc(s.rating_or_price)}</small></td>
         <td>${s.is_noise ? '<span class="pill" style="color:#f87171;">已过滤噪音</span> ' : ''}<strong style="color:var(--text);font-weight:500;">${esc(s.title)}</strong><br><span style="color:var(--text-secondary)">${esc(s.content)}</span></td>
         <td style="color:var(--text-secondary);">${s.record_type === 'comment'
-          ? commentTagLines(s).map(esc).join('<br>')
+          ? [s.metric_primary, ...commentTagLines(s)].filter(Boolean).map(esc).join('<br>')
           : esc(s.metric_primary) + '<br><small style="color:var(--text-muted)">' + esc(s.metric_secondary) + '</small>'}</td>
         <td>
           <button class="btn" onclick="openSnap(${s.id})">${comments.length ? `评论（${comments.length}）` : '本地快照'}</button><br>
@@ -692,6 +692,10 @@ function postKey(value) {
     const note = url.pathname.match(/^\/(?:explore|discovery\/item)\/([\da-f]{24})\/?$/i);
     if (note) return 'xiaohongshu:' + note[1].toLowerCase();
   }
+  if (url.hostname === 'apps.apple.com') {
+    const app = url.pathname.match(/\/id(\d+)\/?$/);
+    if (app) return 'appstore:' + app[1];
+  }
   return url.pathname === '/' ? '' : url.href;
 }
 
@@ -702,7 +706,13 @@ function indexSignalComments(signals) {
   for (const post of signals) {
     if (post.record_type === 'comment' || /^(?:B站评论区痛点|AppStore中国区差评)/.test(post.channel)) continue;
     const key = postKey(post.source_url);
-    if (key) posts.set(key, posts.has(key) ? null : post);
+    if (!key) continue;
+    const previous = posts.get(key);
+    if (previous && key.startsWith('bilibili:')) {
+      if (post.id < previous.id) posts.set(key, post);
+    } else {
+      posts.set(key, posts.has(key) ? null : post);
+    }
   }
   for (const comment of signals) {
     if (comment.record_type !== 'comment') continue;
@@ -746,7 +756,7 @@ function appendSnapshotComments(body, comments) {
   for (const {comment} of ordered) {
     const article = document.createElement('article');
     const meta = document.createElement('strong');
-    meta.textContent = [signalPublishedText(comment), comment.author_or_app].filter(Boolean).join(' · ');
+    meta.textContent = [signalPublishedText(comment), comment.author_or_app, comment.metric_primary].filter(Boolean).join(' · ');
     const content = document.createElement('div');
     content.textContent = [comment.content, `态度：${comment.stance}`, ...commentTagLines(comment, true)].join('\n');
     article.append(document.createElement('hr'), meta, content);

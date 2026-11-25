@@ -169,6 +169,8 @@ python3 scripts/sync_github.py
 
 将获准使用的评论表保存为 `inbox/comments_*.csv`（Git 忽略）。评论行包含 `record_type=comment`、`channel`、平台内唯一的 `comment_id`、`parent_url` 和 `content`。可附 `commented_at`（ISO 日期或带时区时间）、`source_url`、`author_profile_url`。已有的用户资料可填 `age`、`ip_location`（平台展示的属地）、`occupation`、`interests` 以及共同的 `profile_source`，也可为单个字段填对应的 `<字段>_source`。
 
+运行现有 App Store 或 B 站采集流程时，应用和视频进信号库，抓到的评价和留言进本地评论库。系统用平台评论 ID 去重，以应用页或视频链接关联对应信号。App Store 评论时间采用平台返回的评价更新时间。
+
 ```bash
 python scripts/radar_cli.py import-csv
 python scripts/radar_cli.py export --with-comments

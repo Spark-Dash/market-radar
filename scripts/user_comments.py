@@ -26,12 +26,15 @@ def init_comments(conn):
             comment_time_precision TEXT NOT NULL DEFAULT 'unknown',
             comment_time_source TEXT NOT NULL DEFAULT '',
             observed_at TEXT NOT NULL DEFAULT '',
+            source_metric TEXT NOT NULL DEFAULT '',
             PRIMARY KEY (channel, comment_id)
         )
     """)
     columns = {row[1] for row in conn.execute("PRAGMA table_info(raw_comments)")}
     if "profile_evidence" not in columns:
         conn.execute("ALTER TABLE raw_comments ADD COLUMN profile_evidence TEXT NOT NULL DEFAULT '{}'")
+    if "source_metric" not in columns:
+        conn.execute("ALTER TABLE raw_comments ADD COLUMN source_metric TEXT NOT NULL DEFAULT ''")
 
 
 def http_url(value):
@@ -61,14 +64,15 @@ def save_comment(conn, record):
         """INSERT OR IGNORE INTO raw_comments (
                channel, comment_id, parent_url, source_url, content, author_or_app,
                author_profile_url, commented_at, comment_time_precision, comment_time_source, observed_at,
-               profile_evidence
-           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+               profile_evidence, source_metric
+           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (
             channel, comment_id, parent_url, http_url(record.get("source_url")) or parent_url,
             content, record.get("author_or_app") or "", profile_url,
             value, precision, time_source if value else "",
             record.get("observed_at") or observed_now(),
             json.dumps(evidence, ensure_ascii=False),
+            record.get("source_metric") or "",
         ),
     )
     if cursor.rowcount:

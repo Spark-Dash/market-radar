@@ -25,6 +25,7 @@ from typing import List, Tuple
 import radar_cli
 from collab_utils import dump_db_to_jsonl, sync_db_from_jsonl
 from signal_time import epoch_time, newest_results
+from user_comments import archive_comments, restore_comments
 
 BASE_DIR = pathlib.Path(__file__).resolve().parent.parent
 SSL_CTX = ssl._create_unverified_context()
@@ -113,11 +114,13 @@ def main():
     conn = radar_cli.get_conn()
     radar_cli.init_db(conn)
     sync_db_from_jsonl(conn, BASE_DIR, radar_cli.insert_signal)
+    restore_comments(conn, BASE_DIR)
 
     a1 = scan_broad_appstore(conn)
     a2 = scan_broad_bilibili(conn)
     a3 = scan_broad_wechat_and_web(conn)
     a4 = scan_v2ex_pain_points(conn)
+    archive_comments(conn, BASE_DIR)
     stats = radar_cli.clean_and_tag_signals(conn)
     dump_db_to_jsonl(conn, BASE_DIR)
     print(f"[DISCOVERY] 广谱主动扫描完成！新增 AppStore={a1}, B站={a2}, 微信/网页={a3}, V2EX={a4} | 当前库内总信号={stats['total']} (有效={stats['valid']})")
