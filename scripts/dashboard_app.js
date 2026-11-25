@@ -3,9 +3,8 @@ function buildCollectCmd() {
   const kws = (document.getElementById("cgKw")?.value || "microduck,桌面宠物,标书检查").trim();
   const tgs = [];
   if (document.getElementById("cgXy")?.checked) tgs.push("xianyu");
-  if (document.getElementById("cgXhs")?.checked) tgs.push("xhs");
   if (document.getElementById("cgCm")?.checked) tgs.push("chanmama");
-  const tgStr = tgs.length ? tgs.join(",") : "xianyu,xhs";
+  const tgStr = tgs.length ? tgs.join(",") : "xianyu";
   const out = document.getElementById("cgOut");
   if (out) {
     out.textContent = `python3 scripts/auto_browser_collector.py --collect --targets ${tgStr} --keywords "${kws}" && python3 scripts/sync_github.py`;
@@ -558,11 +557,11 @@ function renderWhitepaper() {
         <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin:10px 0;">
           <input id="cgKw" style="max-width:380px;" value="microduck,桌面宠物,装修报价单审核" oninput="buildCollectCmd()" placeholder="多个关键词用逗号隔开">
           <label style="display:inline-flex;align-items:center;gap:5px;font-size:12.5px;width:auto;"><input type="checkbox" id="cgXy" checked onchange="buildCollectCmd()" style="width:auto;"> 闲鱼在售价格与想要数</label>
-          <label style="display:inline-flex;align-items:center;gap:5px;font-size:12.5px;width:auto;"><input type="checkbox" id="cgXhs" checked onchange="buildCollectCmd()" style="width:auto;"> 小红书高赞笔记</label>
+          <span style="font-size:11.5px;color:#fca5a5;">(注：小红书反AI浏览风控极严，已默认熔断登录态自动抓取以保护个人账号)</span>
           <label style="display:inline-flex;align-items:center;gap:5px;font-size:12.5px;width:auto;"><input type="checkbox" id="cgCm" onchange="buildCollectCmd()" style="width:auto;"> 蝉妈妈抖音榜</label>
         </div>
         <div style="font-size:11.5px;color:var(--text-muted);margin-bottom:6px;">首次运行前先执行一次 <code>python3 scripts/auto_browser_collector.py --login</code> 扫码保存你自己的登录态：</div>
-        <code id="cgOut" style="display:block;padding:10px;white-space:pre-wrap;word-break:break-all;">python3 scripts/auto_browser_collector.py --collect --targets xianyu,xhs --keywords "microduck,桌面宠物,装修报价单审核" && python3 scripts/sync_github.py</code>
+        <code id="cgOut" style="display:block;padding:10px;white-space:pre-wrap;word-break:break-all;">python3 scripts/auto_browser_collector.py --collect --targets xianyu --keywords "microduck,桌面宠物,装修报价单审核" && python3 scripts/sync_github.py</code>
       </div>
     </div>
     <div class="inspector">

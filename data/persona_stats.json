@@ -1,10 +1,10 @@
 {
   "ref_date": "2026-11-26",
   "freshness_breakdown": {
-    "7d_hot": 591,
-    "30d_active": 209,
-    "90d_recent": 255,
-    "180d_halfyear": 237,
+    "7d_hot": 606,
+    "30d_active": 211,
+    "90d_recent": 257,
+    "180d_halfyear": 238,
     "stale_archive": 70,
     "recent_unverified": 0
   },
@@ -20,8 +20,8 @@
     },
     {
       "audience": "年轻玩家与桌宠受众",
-      "total": 168,
-      "fresh_30d": 113,
+      "total": 170,
+      "fresh_30d": 115,
       "stale_cnt": 11,
       "pay_habit": "为情绪陪伴、摸鱼解压与捏 OC 外观冲动付费，适合全球买断+DLC",
       "price_band": "18~29 元 Steam 本体 + 6~12 元 DLC",
@@ -29,8 +29,8 @@
     },
     {
       "audience": "B端企业与招投标专员",
-      "total": 192,
-      "fresh_30d": 112,
+      "total": 193,
+      "fresh_30d": 113,
       "stale_cnt": 12,
       "pay_habit": "防损失驱动（防废标/防泄密），客单价高且年卡续费稳，重视本地隐私",
       "price_band": "49 元/次 或 699~1980 元/年",
@@ -38,8 +38,8 @@
     },
     {
       "audience": "备考学生与K12家长",
-      "total": 246,
-      "fresh_30d": 109,
+      "total": 247,
+      "fresh_30d": 110,
       "stale_cnt": 16,
       "pay_habit": "焦虑驱动型即时付费，先款后货零账期，极重打印排版体验",
       "price_band": "9.9~49.9 元 单次定制/打印包",
@@ -47,8 +47,8 @@
     },
     {
       "audience": "视频博主与内容创作者",
-      "total": 225,
-      "fresh_30d": 83,
+      "total": 231,
+      "fresh_30d": 86,
       "stale_cnt": 13,
       "pay_habit": "高频生产刚需，极其反感流氓自动续费，偏好买断或按量计费",
       "price_band": "29.9~69 元 买断或月卡",
@@ -56,8 +56,8 @@
     },
     {
       "audience": "极客与AI/硬件开发者",
-      "total": 91,
-      "fresh_30d": 55,
+      "total": 99,
+      "fresh_30d": 63,
       "stale_cnt": 0,
       "pay_habit": "愿为免配环境整合包、校准固件与节省折腾时间买单",
       "price_band": "99~399 元 镜像/买断包",
@@ -83,8 +83,8 @@
     },
     {
       "audience": "大众效率与副业人群",
-      "total": 47,
-      "fresh_30d": 24,
+      "total": 49,
+      "fresh_30d": 26,
       "stale_cnt": 3,
       "pay_habit": "关注实用工具与性价比",
       "price_band": "19.9~99 元",

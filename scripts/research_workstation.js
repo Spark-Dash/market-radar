@@ -64,7 +64,7 @@ const STAGES = [
 const VALIDATION_KEY = 'mr_validation_v1';
 
 let selectedCode = new URLSearchParams(location.hash.slice(1)).get('project') || '';
-let workMode = 'focus';
+let workMode = localStorage.getItem('mr_work_mode') || 'focus';
 let savedReports = readReports();
 
 function readReports() {
@@ -118,7 +118,8 @@ function renderProjects() {
         <p>从市场信号出发，找到下一个值得验证的方向。</p>
       </div>
       <div class="mode-select" aria-label="查看方式">
-        <button type="button" class="btn" id="focusMode" aria-pressed="${workMode === 'focus'}" onclick="setWorkMode('focus')">项目研究</button>
+        <button type="button" class="btn" id="quickMode" aria-pressed="${workMode === 'quick'}" onclick="setWorkMode('quick')">速读概览</button>
+        <button type="button" class="btn" id="focusMode" aria-pressed="${workMode === 'focus'}" onclick="setWorkMode('focus')">完整深度</button>
         <button type="button" class="btn" id="matrixMode" aria-pressed="${workMode === 'matrix'}" onclick="setWorkMode('matrix')">横向比较</button>
       </div>
     </div>
@@ -138,7 +139,7 @@ function renderProjects() {
       <div id="researchSelection" class="research-selection"></div>
     </div>` : '<div class="inspector">当前批次暂无候选方向。</div>'}
   `;
-  if (list.length && workMode === 'focus') updateSelection(list);
+  if (list.length && workMode !== 'matrix') updateSelection(list);
 }
 
 function renderWatchlist(list) {
@@ -178,6 +179,22 @@ function updateSelection(list) {
         </div>` : ""}
         ${RESEARCH_QUESTIONS[p.code] ? `<div class="brief-question"><span>关键问题</span><p>${esc(RESEARCH_QUESTIONS[p.code])}</p></div>` : ""}
       </section>
+      ${workMode === 'quick' ? `
+      <section class="desk-panel" style="padding:14px 16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <strong style="font-size:13.5px;">核心商业速览（一屏看懂投多少、赚多少、需要几人）</strong>
+          <button type="button" class="btn" onclick="setWorkMode('focus')">切换完整深度档案 →</button>
+        </div>
+        <div class="quick-digest-grid">
+          <div class="card-cell"><span class="cell-k">利润预估与收入来源</span><div class="cell-v">${esc(p.biz_eval?.profit || "待核算")}</div></div>
+          <div class="card-cell"><span class="cell-k">所需人数与研发周期</span><div class="cell-v">${esc(p.biz_eval?.team || "1~2人")} · ${esc(p.biz_eval?.time || "1周内")}</div></div>
+          <div class="card-cell"><span class="cell-k">初期资金成本与合规</span><div class="cell-v">${esc(p.biz_eval?.cost || "<100元")}</div></div>
+        </div>
+      </section>
+      <div class="research-panels" style="grid-template-columns:1fr;">
+        ${renderFactors(p)}
+      </div>
+      ` : `
       <div class="research-panels">
         ${renderLinkedEvidence(p)}
         ${renderFactors(p)}
@@ -187,7 +204,7 @@ function updateSelection(list) {
         <div class="archive-open-body">
           ${renderUnfoldedArchive(p)}
         </div>
-      </section>
+      </section>`}
     </div>
     <aside class="research-context">
       ${renderValidation(p)}
@@ -222,10 +239,10 @@ function navigateCandidates(event) {
 function selectProject(index) {
   const list = getAllProjects();
   if (!list[index]) return;
-  if (list[index].code === selectedCode && workMode === 'focus') return;
+  if (list[index].code === selectedCode && workMode !== 'matrix') return;
   selectedCode = list[index].code;
   history.replaceState(null, '', '#project=' + encodeURIComponent(selectedCode));
-  if (workMode !== 'focus') {
+  if (workMode === 'matrix') {
     workMode = 'focus';
     renderProjects();
     const active = document.querySelector('.watch-item[aria-pressed=true]');
@@ -240,21 +257,39 @@ function selectProject(index) {
 function setWorkMode(mode) {
   if (mode === workMode) return;
   workMode = mode;
+  try { localStorage.setItem('mr_work_mode', mode); } catch {}
   renderProjects();
-  document.getElementById(mode === 'focus' ? 'focusMode' : 'matrixMode')?.focus();
+  document.getElementById(mode === 'quick' ? 'quickMode' : mode === 'focus' ? 'focusMode' : 'matrixMode')?.focus();
 }
 
 function renderFactors(p) {
-  const rules = p.code?.startsWith('TEAM-') ? '团队提报评分' : '评估模型评分';
+  const reasons = p.score_reasons || {};
+  const payScore = factorValues(p)[0]?.score ?? 30;
+  const warnHtml = payScore < 20 ? `<div style="margin-bottom:10px;padding:7px 10px;border-radius:6px;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.35);color:#fca5a5;font-size:12px;">注意：该方向尚未验证真实付费交易（付费分 &lt; 20），严禁直接投入重度开发，须先测款。</div>` : "";
   return `
-    <section class="desk-panel" aria-label="立项评分">
-      <div class="panel-head"><h3>五维评分</h3><span class="panel-count">${rules}</span></div>
+    <section class="desk-panel" aria-label="立项评分依据">
+      <div class="panel-head"><h3>立项评分与给分依据</h3><span class="panel-count">客观证据档位制</span></div>
       <div class="factor-body">
-        ${factorValues(p).map(({label, score, max}) => `
+        ${warnHtml}
+        ${factorValues(p).map(({label, score, max}) => {
+          const rText = reasons[label] || "";
+          return `
           <div class="factor-row">
-            <div><span>${label}</span><span>${max ? score + '/' + max : '未记录'}</span></div>
+            <div><span style="font-weight:500;color:var(--text);">${label}</span><span class="mono">${max ? score + ' / ' + max : '—'}</span></div>
             ${max ? `<meter min="0" max="${max}" value="${score}" aria-label="${label}"></meter>` : ''}
-          </div>`).join('')}
+            ${rText ? `<div class="factor-reason">${esc(rText)}</div>` : ''}
+          </div>`;
+        }).join('')}
+        <details class="rubric-guide">
+          <summary>查看评分标尺说明（每档怎么给分？）</summary>
+          <ul class="rubric-list">
+            <li><strong>付费意愿 (40分)</strong>：闲鱼/蝉妈妈同款想要&gt;500或已收定金=35~40分；想要50~500或万评内购App=26~34分；仅口头求链接无交易=15~22分；无付费迹象=0~14分（一票否决预警）。</li>
+            <li><strong>获客渠道 (25分)</strong>：高赞痛点帖评论区可直接截流或有现成精准群=20~25分；靠闲鱼/Steam长尾搜索自然获客=14~19分；需起号赌流量或买量=5~12分。</li>
+            <li><strong>研发交付 (15分)</strong>：复用现有代码3~5天出MVP=12~15分；1~2周含硬件/跨端联调=9~11分；超2周重度开发=0~8分。</li>
+            <li><strong>竞争空间 (10分)</strong>：切中大厂盲区或软硬/离线隐私独家切口=8~10分；存量红海做差异化单点=5~7分；大厂免费功能已覆盖=0~4分。</li>
+            <li><strong>快速验证 (10分)</strong>：48小时内零代码挂闲鱼/发样片即可测出真金白银询单=8~10分；需做出完整版才能测=3~6分。</li>
+          </ul>
+        </details>
       </div>
     </section>`;
 }
