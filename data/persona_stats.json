@@ -1,11 +1,11 @@
 {
-  "ref_date": "2026-11-24",
+  "ref_date": "2026-11-25",
   "freshness_breakdown": {
-    "7d_hot": 621,
-    "30d_active": 174,
-    "90d_recent": 250,
-    "180d_halfyear": 237,
-    "stale_archive": 49,
+    "7d_hot": 627,
+    "30d_active": 182,
+    "90d_recent": 257,
+    "180d_halfyear": 235,
+    "stale_archive": 53,
     "recent_unverified": 0
   },
   "audience_personas": [
@@ -20,8 +20,8 @@
     },
     {
       "audience": "年轻玩家与桌宠受众",
-      "total": 163,
-      "fresh_30d": 116,
+      "total": 167,
+      "fresh_30d": 120,
       "stale_cnt": 6,
       "pay_habit": "为情绪陪伴、摸鱼解压与捏 OC 外观冲动付费，适合全球买断+DLC",
       "price_band": "18~29 元 Steam 本体 + 6~12 元 DLC",
@@ -29,25 +29,25 @@
     },
     {
       "audience": "B端企业与招投标专员",
-      "total": 187,
+      "total": 188,
       "fresh_30d": 111,
-      "stale_cnt": 5,
+      "stale_cnt": 8,
       "pay_habit": "防损失驱动（防废标/防泄密），客单价高且年卡续费稳，重视本地隐私",
       "price_band": "49 元/次 或 699~1980 元/年",
       "channels": "招投标社群、工程造价论坛、闲鱼企业代查服务"
     },
     {
       "audience": "备考学生与K12家长",
-      "total": 239,
-      "fresh_30d": 107,
-      "stale_cnt": 9,
+      "total": 240,
+      "fresh_30d": 108,
+      "stale_cnt": 10,
       "pay_habit": "焦虑驱动型即时付费，先款后货零账期，极重打印排版体验",
       "price_band": "9.9~49.9 元 单次定制/打印包",
       "channels": "闲鱼搜索、小红书备考/鸡娃笔记、家长微信群"
     },
     {
       "audience": "视频博主与内容创作者",
-      "total": 217,
+      "total": 223,
       "fresh_30d": 80,
       "stale_cnt": 12,
       "pay_habit": "高频生产刚需，极其反感流氓自动续费，偏好买断或按量计费",
@@ -56,8 +56,8 @@
     },
     {
       "audience": "极客与AI/硬件开发者",
-      "total": 89,
-      "fresh_30d": 53,
+      "total": 98,
+      "fresh_30d": 62,
       "stale_cnt": 0,
       "pay_habit": "愿为免配环境整合包、校准固件与节省折腾时间买单",
       "price_band": "99~399 元 镜像/买断包",
@@ -66,7 +66,7 @@
     {
       "audience": "线下门店与个体商户",
       "total": 67,
-      "fresh_30d": 45,
+      "fresh_30d": 44,
       "stale_cnt": 6,
       "pay_habit": "不懂电脑 Excel，只认手机点选 30 秒出图，偏好百元内一次买断",
       "price_band": "99~199 元/年 或买断",
@@ -83,8 +83,8 @@
     },
     {
       "audience": "大众效率与副业人群",
-      "total": 46,
-      "fresh_30d": 24,
+      "total": 48,
+      "fresh_30d": 25,
       "stale_cnt": 3,
       "pay_habit": "关注实用工具与性价比",
       "price_band": "19.9~99 元",
