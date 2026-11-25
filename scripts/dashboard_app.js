@@ -350,6 +350,12 @@ function changeSigPage(delta) {
   document.getElementById('tab-signals')?.scrollIntoView({block:'start'});
 }
 
+function signalExcerpt(value, limit) {
+  const text = cleanText(value);
+  const characters = [...text];
+  return characters.length > limit ? characters.slice(0, limit).join('') + '...' : text;
+}
+
 function renderSigPage() {
   const total = FILTERED_SIGS.length;
   const totalPages = Math.max(1, Math.ceil(total / SIG_PAGE_SIZE));
@@ -372,6 +378,8 @@ function renderSigPage() {
     }
     const colDate = s.observed_at || s.collected_at || '未知';
     const aud = s.audience_tag || '未分类人群';
+    const title = signalExcerpt(s.title, 30);
+    const summary = signalExcerpt(s.content, 200);
     return `
       <tr class="sig-row">
         <td class="signal-time">
@@ -385,7 +393,7 @@ function renderSigPage() {
           <span class="aud-pill">${s.record_type === 'comment' ? '用户评论' : esc(aud)}</span>
         </td>
         <td><strong style="color:var(--text);font-weight:500;">${esc(s.author_or_app)}</strong><br><small style="color:var(--text-muted)">${esc(s.rating_or_price)}</small></td>
-        <td>${s.is_noise ? '<span class="pill" style="color:#f87171;">已过滤噪音</span> ' : ''}<strong style="color:var(--text);font-weight:500;">${esc(s.title)}</strong><br><span style="color:var(--text-secondary)">${esc(s.content)}</span></td>
+        <td>${s.is_noise ? '<span class="pill" style="color:#f87171;">已过滤噪音</span> ' : ''}<strong style="color:var(--text);font-weight:500;">${esc(title)}</strong><br><span style="color:var(--text-secondary)">${esc(summary)}</span></td>
         <td style="color:var(--text-secondary);">${s.record_type === 'comment'
           ? [s.metric_primary, ...commentTagLines(s)].filter(Boolean).map(esc).join('<br>')
           : esc(s.metric_primary) + '<br><small style="color:var(--text-muted)">' + esc(s.metric_secondary) + '</small>'}</td>
