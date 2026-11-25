@@ -28,6 +28,8 @@ import urllib.parse
 import urllib.request
 from typing import Any, Dict, List, Optional, Tuple
 
+from signal_time import epoch_time, market_today, newest_results, observed_now, source_day, source_time
+
 BASE_WORKSPACE = pathlib.Path(__file__).resolve().parent.parent
 DB_PATH = BASE_WORKSPACE / "radar.db"
 INBOX_DIR = BASE_WORKSPACE / "inbox"
@@ -109,7 +111,8 @@ def init_db(conn: sqlite3.Connection) -> None:
         )
         """
     )
-    conn.commit()
+    from persona_and_freshness import ensure_columns
+    ensure_columns(conn)
 
 
 def strip_html(text: str) -> str:
@@ -135,33 +138,60 @@ def insert_signal(
     source_url: str,
     published_at: str = "",
     collected_at: str = "",
+    *,
+    source_published_at: str = "",
+    published_time_source: str = "",
+    observed_at: Optional[str] = None,
+    signal_id: Optional[int] = None,
 ) -> bool:
+    raw_time, precision = source_time(source_published_at)
+    observed_at = observed_now() if observed_at is None else observed_at
+    author = author_or_app[:100]
+    title = title[:200]
     cur = conn.cursor()
     cur.execute(
         """
         INSERT OR IGNORE INTO raw_signals (
-            channel, source_tier, category, query_term, title, content,
+            id, channel, source_tier, category, query_term, title, content,
             author_or_app, metric_primary, metric_secondary, rating_or_price,
-            source_url, collected_at, published_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            source_url, collected_at, published_at, source_published_at,
+            published_time_source, published_time_precision, observed_at
+        ) VALUES (
+            CASE WHEN EXISTS (SELECT 1 FROM raw_signals WHERE id = ?) THEN NULL ELSE ? END,
+            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+        )
         """,
         (
-            channel,
+            signal_id, signal_id, channel,
             source_tier,
             category,
             query_term,
-            title[:200],
+            title,
             content[:1000],
-            author_or_app[:100],
+            author,
             metric_primary[:80],
             metric_secondary[:80],
             rating_or_price[:80],
             source_url[:500],
             collected_at or now_str(),
-            (published_at or (collected_at or now_str())[:10])[:10],
+            (published_at or raw_time or (collected_at or now_str())[:10])[:10],
+            raw_time,
+            published_time_source if raw_time else "",
+            precision,
+            observed_at,
         ),
     )
-    return cur.rowcount > 0
+    added = cur.rowcount > 0
+    if not added and raw_time:
+        cur.execute(
+            """UPDATE raw_signals SET source_published_at=?, published_time_source=?,
+               published_time_precision=?, observed_at=COALESCE(NULLIF(observed_at, ''), ?)
+               WHERE channel=? AND title=? AND author_or_app=?
+                 AND (COALESCE(source_published_at, '')='' OR
+                      (published_time_precision='date' AND ?='timestamp'))""",
+            (raw_time, published_time_source, precision, observed_at, channel, title, author, precision),
+        )
+    return added
 
 
 def collect_appstore(conn: sqlite3.Connection, custom_queries: Optional[List[Tuple[str, str]]] = None) -> int:
@@ -202,7 +232,8 @@ def collect_appstore(conn: sqlite3.Connection, custom_queries: Optional[List[Tup
                     rating = entry.get("im:rating", {}).get("label", "")
                     if rating not in ("1", "2", "3"):
                         continue
-                    pub_dt = (entry.get("updated", {}).get("label", "") or "")[:10]
+                    pub = entry.get("updated", {}).get("label", "") or ""
+                    pub_dt = pub[:10]
                     if pub_dt and (datetime.date.today() - datetime.date.fromisoformat(pub_dt)).days > 180:
                         continue
                     r_title = strip_html(entry.get("title", {}).get("label", ""))
@@ -223,6 +254,8 @@ def collect_appstore(conn: sqlite3.Connection, custom_queries: Optional[List[Tup
                             rating_or_price=f"{rating}星 / 内购订阅制",
                             source_url=app_url,
                             published_at=pub_dt,
+                            source_published_at=pub,
+                            published_time_source="appstore_review_updated",
                         )
                         if ok:
                             added += 1
@@ -268,16 +301,16 @@ def collect_bilibili(conn: sqlite3.Connection, custom_queries: Optional[List[Tup
             raw = opener.open(url, timeout=10).read().decode("utf-8", errors="ignore")
             res = json.loads(raw)
             items = res.get("data", {}).get("result", []) or []
-            for item in items[:4]:
+            candidates = ((item, epoch_time(item.get("pubdate"))) for item in items)
+            for item, published in newest_results(candidates, 4):
                 title = strip_html(item.get("title", ""))
                 desc = strip_html(item.get("description", ""))
                 play = int(item.get("play") or 0)
                 fav = int(item.get("favorites") or 0)
                 danmaku = int(item.get("video_review") or 0)
                 author = item.get("author", "")
-                pub_ts = int(item.get("pubdate") or 0)
-                pub_dt = datetime.datetime.fromtimestamp(pub_ts).strftime("%Y-%m-%d") if pub_ts > 0 else now_str()[:10]
-                if pub_ts > 0 and (datetime.date.today() - datetime.date.fromisoformat(pub_dt)).days > 180:
+                pub_dt = source_day(published)
+                if pub_dt and (market_today() - datetime.date.fromisoformat(pub_dt)).days > 180:
                     continue
                 bvid = item.get("bvid", "")
                 aid = item.get("aid")
@@ -313,6 +346,8 @@ def collect_bilibili(conn: sqlite3.Connection, custom_queries: Optional[List[Tup
                     rating_or_price="高收藏干货" if fav_ratio >= 5.0 else "常规视频",
                     source_url=f"https://www.bilibili.com/video/{bvid}",
                     published_at=pub_dt,
+                    source_published_at=published,
+                    published_time_source="bilibili_video_pubdate",
                 )
                 if ok:
                     added += 1
@@ -338,13 +373,16 @@ def collect_wechat_sogou(conn: sqlite3.Connection, custom_queries: Optional[List
             with urllib.request.urlopen(req, timeout=10, context=SSL_CTX) as resp:
                 page = resp.read().decode("utf-8", errors="ignore")
             blocks = re.findall(r'<div class="txt-box">(.*?)</div>\s*</div>', page, re.S)
-            for blk in blocks[:3]:
+            candidates = []
+            for blk in blocks:
+                ts_match = re.search(r"timeConvert\('(\d+)'\)", blk)
+                candidates.append((blk, epoch_time(ts_match.group(1)) if ts_match else ""))
+            for blk, published in newest_results(candidates, 3):
                 t_match = re.search(r"<h3[^>]*>\s*<a[^>]*href=\"([^\"]+)\"[^>]*>(.*?)</a>\s*</h3>", blk, re.S)
                 p_match = re.search(r'<p class="txt-info"[^>]*>(.*?)</p>', blk, re.S)
                 a_match = re.search(r'<span class="all-time-y2">(.*?)</span>', blk, re.S)
-                ts_match = re.search(r"timeConvert\('(\d+)'\)", blk)
-                pub_dt = datetime.datetime.fromtimestamp(int(ts_match.group(1))).strftime("%Y-%m-%d") if ts_match else now_str()[:10]
-                if ts_match and (datetime.date.today() - datetime.date.fromisoformat(pub_dt)).days > 180:
+                pub_dt = source_day(published)
+                if pub_dt and (market_today() - datetime.date.fromisoformat(pub_dt)).days > 180:
                     continue
                 if not t_match:
                     continue
@@ -368,6 +406,8 @@ def collect_wechat_sogou(conn: sqlite3.Connection, custom_queries: Optional[List
                     rating_or_price="行业一线案例",
                     source_url=href,
                     published_at=pub_dt,
+                    source_published_at=published,
+                    published_time_source="sogou_article_time",
                 )
                 if ok:
                     added += 1

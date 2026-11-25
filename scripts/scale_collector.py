@@ -23,6 +23,7 @@ from typing import Any, Dict, List, Tuple
 import radar_cli
 from collab_utils import dump_db_to_jsonl, sync_db_from_jsonl
 from persona_and_freshness import ensure_columns, enrich_all_signals
+from signal_time import epoch_time
 
 BASE_DIR = pathlib.Path(__file__).resolve().parent.parent
 SSL_CTX = ssl._create_unverified_context()
@@ -80,7 +81,8 @@ def fetch_appstore_category(cat_and_term: Tuple[str, str]) -> List[Dict[str, str
                     rating = (e.get("im:rating") or {}).get("label", "")
                     if rating not in ("1", "2", "3"):
                         continue
-                    pub_dt = ((e.get("updated") or {}).get("label") or "")[:10]
+                    pub = (e.get("updated") or {}).get("label") or ""
+                    pub_dt = pub[:10]
                     if not is_within_days(pub_dt, 180):
                         continue
                     rt = radar_cli.strip_html((e.get("title") or {}).get("label", ""))
@@ -101,6 +103,7 @@ def fetch_appstore_category(cat_and_term: Tuple[str, str]) -> List[Dict[str, str
                             "price": f"{rating}星 / 付费内购痛点",
                             "url": aurl,
                             "pub": pub_dt,
+                            "source_pub": pub,
                         })
                         picked += 1
                         if picked >= 12:
@@ -143,6 +146,7 @@ def fetch_github_issues_batch(repo_info: Tuple[str, str]) -> List[Dict[str, str]
                 "price": "开发者/复刻真实卡点",
                 "url": iss.get("html_url", f"https://github.com/{repo}/issues"),
                 "pub": pub_dt,
+                "source_pub": iss.get("created_at") or "",
             })
     except Exception:
         pass
@@ -189,6 +193,7 @@ def fetch_wechat_batch(cat_and_q: Tuple[str, str]) -> List[Dict[str, str]]:
                 "price": "行业案例与需求",
                 "url": href,
                 "pub": pub_dt,
+                "source_pub": epoch_time(tsm.group(1)),
             })
     except Exception:
         pass
@@ -227,6 +232,7 @@ def fetch_v2ex_nodes() -> List[Dict[str, str]]:
                     "price": "社区真实需求",
                     "url": it.get("url", ""),
                     "pub": pub_dt,
+                    "source_pub": epoch_time(ts),
                 })
         except Exception:
             pass
@@ -309,6 +315,8 @@ def main():
             rating_or_price=rec["price"],
             source_url=rec["url"],
             published_at=rec["pub"],
+            source_published_at=rec["source_pub"],
+            published_time_source=rec["channel"],
         )
         if ok:
             inserted += 1

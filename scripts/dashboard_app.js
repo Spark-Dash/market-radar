@@ -13,8 +13,36 @@ function buildCollectCmd() {
 }
 
 
-function freshBadge(tier, pubDate) {
+const SIGNAL_DAY_MS = 86400000;
+const MARKET_OFFSET_MS = 8 * 3600000;
+
+function signalTiming(s, now = Date.now()) {
+  const raw = s.source_published_at;
+  const precision = s.published_time_precision;
+  const unknown = {tier: 'recent_unverified', hour24: false, order: -Infinity};
+  if (!raw || !['date', 'timestamp'].includes(precision)) return unknown;
+
+  const dayOnly = precision === 'date';
+  const stamp = Date.parse(dayOnly ? raw + 'T00:00:00Z' : raw);
+  const today = Math.floor((now + MARKET_OFFSET_MS) / SIGNAL_DAY_MS);
+  const day = Math.floor((stamp + (dayOnly ? 0 : MARKET_OFFSET_MS)) / SIGNAL_DAY_MS);
+  const age = today - day;
+  if (!Number.isFinite(stamp) || age < 0 || (!dayOnly && stamp > now)) return unknown;
+
+  const tier = age <= 7 ? '7d_hot' : age <= 30 ? '30d_active' :
+    age <= 90 ? '90d_recent' : age <= 180 ? '180d_halfyear' : 'stale_archive';
+  return {tier, hour24: !dayOnly && now - stamp <= SIGNAL_DAY_MS,
+    order: dayOnly ? stamp - MARKET_OFFSET_MS : stamp};
+}
+
+function signalPublishedText(s) {
+  if (signalTiming(s).tier !== 'recent_unverified') return s.source_published_at;
+  return s.published_at ? '待核实（旧记录 ' + s.published_at + '）' : '待核实';
+}
+
+function freshBadge(tier, pubDate, hour24) {
   const dt = esc(pubDate || "未知");
+  if (hour24) return `<span class="fresh-badge fresh-7d">近 24 小时 · ${dt}</span>`;
   if (tier === "7d_hot") return `<span class="fresh-badge fresh-7d">近7天 · ${dt}</span>`;
   if (tier === "30d_active") return `<span class="fresh-badge fresh-30d">近30天 · ${dt}</span>`;
   if (tier === "90d_recent" || tier === "180d_halfyear") return `<span class="fresh-badge fresh-90d">近期 · ${dt}</span>`;
@@ -248,7 +276,8 @@ let FILTERED_SIGS = [];
 
 function renderSignals() {
   const sigs = DATA.signals || [];
-  document.getElementById('lblSigCnt').innerText = sigs.filter(s => !s.is_noise && s.freshness_tier !== 'stale_archive').length;
+  const now = Date.now();
+  document.getElementById('lblSigCnt').innerText = sigs.filter(s => !s.is_noise && signalTiming(s, now).tier === '7d_hot').length;
   const allAuds = [...new Set(sigs.map(s => cleanText(s.audience_tag)).filter(Boolean))];
   const allChs = [...new Set(sigs.map(s => cleanText(s.channel)).filter(Boolean))];
 
@@ -256,10 +285,13 @@ function renderSignals() {
     <div class="signal-controls" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px;">
       <input id="qInput" style="max-width:260px;" aria-label="搜索信号" placeholder="搜索编号(#12)、标题、原文或人群..." oninput="SIG_PAGE=1;filterRows()">
       <select id="timeSelect" style="max-width:205px;" aria-label="按发布时效筛选" onchange="SIG_PAGE=1;filterRows()">
+        <option value="recent">近 7 天（近 24 小时优先）</option>
+        <option value="24h">仅看近 24 小时</option>
         <option value="active180">当下有效信号 (剔除超半年旧帖)</option>
         <option value="7d">仅看近 7 天新发布</option>
         <option value="30d">仅看近 30 天内发布</option>
         <option value="all_time">全部时间 (含早期历史旧帖)</option>
+        <option value="unknown">发布时间待核实</option>
         <option value="stale_only">仅看被隔离的超半年旧帖</option>
       </select>
       <select id="audSelect" style="max-width:215px;" aria-label="按买单人群筛选" onchange="SIG_PAGE=1;filterRows()">
@@ -303,15 +335,14 @@ function renderSigPage() {
 
   const rowsHtml = slice.map(s => {
     const source = sourceLink(s.source_url);
-    const pubDate = s.published_at || (s.collected_at||'').slice(0,10);
-    const colDate = (s.collected_at||'').slice(0,10);
-    const fTier = s.freshness_tier || '30d_active';
+    const timing = signalTiming(s);
+    const colDate = s.observed_at || s.collected_at || '未知';
     const aud = s.audience_tag || '未分类人群';
     return `
       <tr class="sig-row">
         <td style="font-family:monospace;color:var(--text-muted);">
           <b>#${s.id}</b><br>
-          ${freshBadge(fTier, pubDate)}<br>
+          ${freshBadge(timing.tier, signalPublishedText(s), timing.hour24)}<br>
           <small style="font-size:10.5px;">入库 ${esc(colDate)}</small>
         </td>
         <td>
@@ -616,7 +647,7 @@ function openSnap(id) {
   const s = SIG_MAP[id];
   if (!s) return;
   document.getElementById('mTitle').textContent = `证据 #${s.id} — ${cleanText(s.title)}`;
-  document.getElementById('mMeta').textContent = `源站发布：${cleanText(s.published_at || '未知')} | 采集入库：${cleanText(s.collected_at)} | 人群画像：${cleanText(s.audience_tag || '通用')} | 渠道：${cleanText(s.channel)}`;
+  document.getElementById('mMeta').textContent = `源站发布：${signalPublishedText(s)} | 采集入库：${s.observed_at || cleanText(s.collected_at)} | 人群画像：${cleanText(s.audience_tag || '通用')} | 渠道：${cleanText(s.channel)}`;
   document.getElementById('mBody').textContent = [
     s.is_noise ? `已过滤：${cleanText(s.noise_reason) || '未记录原因'}` : '',
     '[采集时保存的内容]',
@@ -742,17 +773,21 @@ function filterRows() {
   const id = q.match(/^#(\d+)$/)?.[1];
   const ch = document.getElementById('chSelect')?.value || '';
   const aud = document.getElementById('audSelect')?.value || '';
-  const tMode = document.getElementById('timeSelect')?.value || 'active180';
+  const tMode = document.getElementById('timeSelect')?.value || 'recent';
   const noise = document.getElementById('noiseSelect')?.value || 'valid';
+  const now = Date.now();
+  const timing = new Map(sigs.map(s => [s.id, signalTiming(s, now)]));
 
   FILTERED_SIGS = sigs.filter(s => {
-    const f = s.freshness_tier || '30d_active';
+    const {tier: f, hour24} = timing.get(s.id);
     let timeOk = true;
-    if (tMode === 'active180') timeOk = (f !== 'stale_archive');
-    else if (tMode === '7d') timeOk = (f === '7d_hot');
+    if (tMode === 'active180') timeOk = !['stale_archive', 'recent_unverified'].includes(f);
+    else if (tMode === '24h') timeOk = hour24;
+    else if (tMode === '7d' || tMode === 'recent') timeOk = (f === '7d_hot');
     else if (tMode === '30d') timeOk = (f === '7d_hot' || f === '30d_active');
     else if (tMode === 'stale_only') timeOk = (f === 'stale_archive');
-    if (!timeOk) return false;
+    else if (tMode === 'unknown') timeOk = (f === 'recent_unverified');
+    if (!timeOk && !id) return false;
     if (noise !== 'all' && Boolean(s.is_noise) !== (noise === 'noise')) return false;
     if (ch && cleanText(s.channel) !== ch) return false;
     if (aud && cleanText(s.audience_tag) !== aud) return false;
@@ -762,6 +797,9 @@ function filterRows() {
       return hay.includes(q);
     }
     return true;
+  }).sort((a, b) => {
+    const left = timing.get(a.id), right = timing.get(b.id);
+    return Number(right.hour24) - Number(left.hour24) || right.order - left.order || a.id - b.id;
   });
   renderSigPage();
 }

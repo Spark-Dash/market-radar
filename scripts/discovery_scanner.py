@@ -24,6 +24,7 @@ from typing import List, Tuple
 
 import radar_cli
 from collab_utils import dump_db_to_jsonl, sync_db_from_jsonl
+from signal_time import epoch_time, newest_results
 
 BASE_DIR = pathlib.Path(__file__).resolve().parent.parent
 SSL_CTX = ssl._create_unverified_context()
@@ -76,7 +77,8 @@ def scan_v2ex_pain_points(conn: sqlite3.Connection) -> int:
             req = urllib.request.Request(url, headers={"User-Agent": UA})
             with urllib.request.urlopen(req, timeout=8, context=SSL_CTX) as resp:
                 items = json.loads(resp.read().decode("utf-8", errors="ignore"))
-            for it in items[:6]:
+            candidates = ((item, epoch_time(item.get("created"))) for item in items)
+            for it, published in newest_results(candidates, 6):
                 title = radar_cli.strip_html(it.get("title", ""))
                 content = radar_cli.strip_html(it.get("content", ""))
                 replies = int(it.get("replies") or 0)
@@ -96,6 +98,8 @@ def scan_v2ex_pain_points(conn: sqlite3.Connection) -> int:
                         metric_secondary=f"节点: {node}",
                         rating_or_price="真实社区痛点",
                         source_url=t_url,
+                        source_published_at=published,
+                        published_time_source="v2ex_topic_created",
                     )
                     if ok:
                         added += 1
