@@ -11,7 +11,7 @@ Roadmap 追踪（GitHub Issue #2）：`https://github.com/donghyq/market-radar/i
 1. **拉取仓库并获得权限**：管理员在 GitHub 仓库 `Settings -> Collaborators` 中添加成员账号后，成员克隆仓库并确保已登录 `gh auth login`。
 2. **零命令菜单式采集**：
    - **macOS**：直接双击根目录 `Mac一键采集向导.command`（或终端执行 `python3 run_radar.py`）
-   - **Windows**：直接双击根目录 `Windows一键采集向导.bat`
+   - **Windows**：装好 Python 3 后，双击根目录 `Windows一键采集向导.bat`
    - 选 `[1]` 采集 App Store、B 站等公开渠道，再选 `[6]` 生成并打开本地工作台，在信号库点「评论（N）」。
    - 先选 `[2]` 扫码登录一次自己的闲鱼/小红书/蝉妈妈（登录态仅保存在个人电脑 `.browser_profile/`，互不干扰），再选 `[3]` 输入任意关键词即可自动抓包入库。
 3. **无损合并上传**：在菜单选 `[5]`（或执行 `python3 scripts/sync_github.py`），脚本会自动拉取远端队友刚抓的数据按唯一指纹去重合并，重新编译看板并同步上线，不会互相覆盖。
