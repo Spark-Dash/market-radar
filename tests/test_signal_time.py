@@ -89,6 +89,31 @@ class SignalTimeTest(unittest.TestCase):
             self.assertEqual(rows[71]["published_time_precision"], "timestamp")
             self.assertEqual(rows[71]["observed_at"], new["observed_at"])
 
+    def test_reapplying_archive_does_not_allocate_signal_ids(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            archive = root / "data/signals/signals_master.jsonl"
+            archive.parent.mkdir(parents=True)
+            existing = {"id": 42, "channel": "测试", "title": "已有信号"}
+            archive.write_text(json.dumps(existing) + "\n", encoding="utf-8")
+            conn = radar_cli.get_conn(root / "radar.db")
+            try:
+                radar_cli.init_db(conn)
+                self.assertEqual(sync_db_from_jsonl(conn, root, radar_cli.insert_signal), 1)
+                for _ in range(3):
+                    self.assertEqual(sync_db_from_jsonl(conn, root, radar_cli.insert_signal), 0)
+                self.assertEqual(conn.execute("SELECT seq FROM sqlite_sequence WHERE name='raw_signals'").fetchone()[0], 42)
+
+                with archive.open("a", encoding="utf-8") as stream:
+                    stream.write(json.dumps({**existing, "title": "真正的新信号"}) + "\n")
+                self.assertEqual(sync_db_from_jsonl(conn, root, radar_cli.insert_signal), 1)
+                self.assertEqual(sync_db_from_jsonl(conn, root, radar_cli.insert_signal), 0)
+                rows = conn.execute("SELECT id, title FROM raw_signals ORDER BY id").fetchall()
+                self.assertEqual([tuple(row) for row in rows], [(42, "已有信号"), (43, "真正的新信号")])
+                self.assertEqual(conn.execute("SELECT seq FROM sqlite_sequence WHERE name='raw_signals'").fetchone()[0], 43)
+            finally:
+                conn.close()
+
     def test_archive_date_for_previously_restored_signal_yields_to_source_time(self):
         with tempfile.TemporaryDirectory() as folder:
             root = pathlib.Path(folder)

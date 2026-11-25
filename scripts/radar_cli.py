@@ -152,6 +152,7 @@ def insert_signal(
     author = author_or_app[:100]
     title = title[:200]
     cur = conn.cursor()
+    # Skip known duplicates before SQLite allocates an AUTOINCREMENT value.
     cur.execute(
         """
         INSERT OR IGNORE INTO raw_signals (
@@ -159,9 +160,11 @@ def insert_signal(
             author_or_app, metric_primary, metric_secondary, rating_or_price,
             source_url, collected_at, published_at, source_published_at,
             published_time_source, published_time_precision, observed_at
-        ) VALUES (
+        ) SELECT
             CASE WHEN EXISTS (SELECT 1 FROM raw_signals WHERE id = ?) THEN NULL ELSE ? END,
             ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+        WHERE NOT EXISTS (
+            SELECT 1 FROM raw_signals WHERE channel=? AND title=? AND author_or_app=?
         )
         """,
         (
@@ -182,6 +185,7 @@ def insert_signal(
             published_time_source if raw_time else "",
             precision,
             observed_at,
+            channel, title, author,
         ),
     )
     added = cur.rowcount > 0
