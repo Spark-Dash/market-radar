@@ -12,6 +12,7 @@ import argparse
 import datetime
 import json
 import pathlib
+import random
 import re
 import sys
 import urllib.parse
@@ -254,7 +255,7 @@ def run_browser_collector(mode: str, targets: List[str], keywords: List[str]) ->
         if mode == "login":
             page.goto("https://www.chanmama.com/", wait_until="domcontentloaded")
             p2 = context.new_page(); p2.goto("https://www.goofish.com/", wait_until="domcontentloaded")
-            p3 = context.new_page(); p3.goto("https://www.xiaohongshu.com/", wait_until="domcontentloaded")
+            # 安全熔断：小红书对 CDP/AI 浏览器自动化检测极严，禁止绑定个人主号跑自动浏览
             try:
                 page.wait_for_event("close", timeout=300000)
             except Exception:
@@ -280,24 +281,26 @@ def run_browser_collector(mode: str, targets: List[str], keywords: List[str]) ->
         page.on("response", on_response)
 
         if "xianyu" in targets:
-            for kw in keywords:
+            for kw in keywords[:4]:
                 cur_kw["kw"] = kw
                 u = "https://www.goofish.com/search?q=" + urllib.parse.quote(kw)
                 print(f"[闲鱼抓包] 正在检索: {kw}")
                 try:
                     page.goto(u, wait_until="domcontentloaded", timeout=15000)
-                    page.wait_for_timeout(3200)
+                    page.wait_for_timeout(random.randint(6500, 11500))
                 except Exception as exc:
                     print(f"  [WARN] 闲鱼跳过 ({kw}): {exc}")
 
         if "xhs" in targets:
+            print("[安全拦截] 小红书反 AI 自动化浏览风控极严，为保护团队成员账号安全，已默认熔断小红书登录态自动抓取！请改用免登录公开检索或人工录入高赞神帖。")
+        if False and "xhs" in targets:
             for kw in keywords:
                 cur_kw["kw"] = kw
                 u = f"https://www.xiaohongshu.com/search_result?keyword={urllib.parse.quote(kw)}&source=web_search_result_notes"
                 print(f"[小红书抓包] 正在检索: {kw}")
                 try:
                     page.goto(u, wait_until="domcontentloaded", timeout=15000)
-                    page.wait_for_timeout(3200)
+                    page.wait_for_timeout(random.randint(6500, 11500))
                 except Exception as exc:
                     print(f"  [WARN] 小红书跳过 ({kw}): {exc}")
 
@@ -359,7 +362,8 @@ def main():
     parser = argparse.ArgumentParser(description="蝉妈妈/闲鱼/小红书真机 XHR 精确抓包器")
     parser.add_argument("--login", action="store_true", help="打开 Chrome 扫码登录一次并保存 Cookie")
     parser.add_argument("--collect", action="store_true", help="全自动拦截 XHR 数据包入库")
-    parser.add_argument("--targets", default="xianyu,xhs,chanmama", help="目标平台: xianyu,xhs,chanmama")
+    parser.add_argument("--targets", default="xianyu,chanmama", help="安全目标平台: xianyu,chanmama（小红书已默认熔断防封号）")
+    parser.add_argument("--force-unsafe-xhs", action="store_true", help="不推荐：强制使用测试小号抓小红书")
     parser.add_argument(
         "--keywords",
         default=load_default_keywords(),

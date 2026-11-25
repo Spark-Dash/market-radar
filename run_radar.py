@@ -38,8 +38,8 @@ def menu():
         print("  Market Radar · 团队市场信号采集与协同总台")
         print("============================================================")
         print("  [1] 免登录快速采集公开渠道 (AppStore差评 + B站 + 微信 + GitHub新物种)")
-        print("  [2] 首次扫码保存我自己的 闲鱼 / 小红书 / 蝉妈妈 登录态 (仅存本机不外泄)")
-        print("  [3] 按自定义关键词抓取 闲鱼价格想要数 / 小红书笔记 / 蝉妈妈榜单")
+        print("  [2] 首次扫码保存我自己的 闲鱼 / 蝉妈妈（小红书已熔断防账号预警） 登录态 (仅存本机不外泄)")
+        print("  [3] 按自定义关键词抓取 闲鱼价格想要数 / 蝉妈妈榜单（低频拟人安全模式）")
         print("  [4] 查看或添加团队长期监测词库 (config/watch_keywords.json)")
         print("  [5] 将我本机新抓的数据与团队 GitHub 总库安全合并并发布线上看板")
         print("  [6] 在浏览器中打开本地最新工作台 (index.html)")
@@ -61,7 +61,7 @@ def menu():
             if not ensure_playwright():
                 continue
             kw = input("\n请输入你想抓取的关键词（多个词用逗号隔开，直接回车则使用团队默认词库）:\n> ").strip()
-            tg = input("请选择抓取平台 [直接回车=全部(xianyu,xhs,chanmama) / 仅闲鱼输入 xianyu / 仅小红书输入 xhs]:\n> ").strip()
+            tg = input("请选择抓取平台 [直接回车=全部安全平台(xianyu,chanmama) / 仅闲鱼输入 xianyu]:\n> ").strip()
             args = ["--collect"]
             if tg:
                 args += ["--targets", tg]

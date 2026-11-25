@@ -357,3 +357,11 @@ body { background: radial-gradient(ellipse at 52% -25%, #1c304a 0%, var(--bg) 46
 .stage-card h4 { margin: 0; font-size: 15px; color: var(--text); font-weight: 600; }
 .stage-card p { margin: 0; font-size: 13px; color: var(--text-secondary); line-height: 1.65; }
 @media (max-width: 960px) { .stage-track { grid-template-columns: 1fr; } }
+
+/* Rubric Reasons & Quick Digest Mode */
+.factor-reason { font-size: 11.5px; color: var(--text-muted); line-height: 1.45; margin: 3px 0 10px; }
+.rubric-guide { margin-top: 10px; border-top: 1px dashed var(--border); padding-top: 8px; font-size: 11.5px; color: var(--text-secondary); }
+.rubric-guide summary { cursor: pointer; color: var(--accent); font-weight: 500; user-select: none; }
+.rubric-list { margin: 8px 0 0; padding-left: 16px; line-height: 1.6; color: var(--text-muted); }
+.quick-digest-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+@media (max-width: 860px) { .quick-digest-grid { grid-template-columns: 1fr; } }
